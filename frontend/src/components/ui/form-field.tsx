@@ -18,7 +18,10 @@ export function FormField({ label, htmlFor, error, hint, children }: FormFieldPr
       </label>
       {children}
       {error ? (
-        <p className="text-sm text-danger">{error}</p>
+        // id lets the input point at it with aria-describedby={`${htmlFor}-error`}.
+        <p id={`${htmlFor}-error`} className="text-sm text-danger">
+          {error}
+        </p>
       ) : hint ? (
         <p className="text-sm text-muted-foreground">{hint}</p>
       ) : null}

@@ -8,6 +8,7 @@ import {
   listExpensesQuerySchema,
   updateExpenseSchema,
 } from '../validators/expense.validator';
+import { participantParamsSchema, settlementSchema, splitInputSchema } from '../validators/split.validator';
 
 const router = Router();
 
@@ -24,5 +25,22 @@ router.patch(
   expenseController.update,
 );
 router.delete('/:id', validateParams(idParamSchema), expenseController.remove);
+
+// Create or replace the split of an expense (the body is the split itself).
+router.put(
+  '/:id/split',
+  validateParams(idParamSchema),
+  validateBody(splitInputSchema),
+  expenseController.replaceSplit,
+);
+// Turn a split expense back into a personal one (the expense itself stays).
+router.delete('/:id/split', validateParams(idParamSchema), expenseController.removeSplit);
+// Mark one participant PAID or PENDING.
+router.patch(
+  '/:id/split/participants/:participantId',
+  validateParams(participantParamsSchema),
+  validateBody(settlementSchema),
+  expenseController.settleParticipant,
+);
 
 export default router;

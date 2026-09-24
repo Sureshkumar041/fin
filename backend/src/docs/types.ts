@@ -16,3 +16,16 @@ export const ref = {
   response: (name: string) => ({ $ref: `#/components/responses/${name}` }),
   parameter: (name: string) => ({ $ref: `#/components/parameters/${name}` }),
 };
+
+type ErrorExample = { code: string; message: string; details?: Record<string, string[]> };
+
+// An error response with an endpoint-specific example, for when the shared
+// ones in components.responses are too generic (e.g. a particular 409 message).
+// Return type is inferred: openapi-types checks path items against its 3.0
+// types, which reject an explicit OpenAPIV3_1.ResponseObject.
+export function errorResponse(description: string, example: ErrorExample) {
+  return {
+    description,
+    content: { 'application/json': { schema: ref.schema('Error'), example } },
+  };
+}

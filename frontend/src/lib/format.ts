@@ -1,5 +1,5 @@
 import { config } from '@/lib/config';
-import type { IsoDate, YearMonth } from '@/types';
+import type { IsoDate, IsoDateTime, YearMonth } from '@/types';
 
 const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: config.currency });
 
@@ -14,6 +14,11 @@ export function formatDate(date: IsoDate): string {
     month: 'short',
     year: 'numeric',
   });
+}
+
+/** A timestamp from the API (e.g. settledAt) as a local date: "22 Sep 2026". */
+export function formatTimestampDate(timestamp: IsoDateTime): string {
+  return new Date(timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

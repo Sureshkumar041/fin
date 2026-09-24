@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDate } from './common.validator';
+import { splitInputSchema } from './split.validator';
 
 // Matches NUMERIC(12,2): up to 10 digits before the point and 2 after.
 const MAX_AMOUNT = 9_999_999_999.99;
@@ -25,6 +26,8 @@ export const createExpenseSchema = z.object({
   categoryId: z.uuid('Invalid categoryId'),
   expenseDate: date,
   description: description.optional().default(null),
+  // Absent = a normal personal expense. Rules live in split.validator.ts.
+  split: splitInputSchema.optional(),
 });
 
 export const updateExpenseSchema = z

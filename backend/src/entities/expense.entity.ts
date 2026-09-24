@@ -6,21 +6,21 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Category } from './category.entity';
+import { ExpenseParticipant } from './expense-participant.entity';
+import { decimalToNumber } from '../utils/decimal-transformer';
 
-// Postgres returns NUMERIC as a string to avoid precision loss. Two decimal
-// places fit safely in a JS number, so convert for convenience.
-const decimalToNumber = {
-  to: (value: number) => value,
-  from: (value: string | null) => (value === null ? null : Number(value)),
-};
+export const SPLIT_METHODS = ['EQUAL', 'CUSTOM', 'PERCENTAGE'] as const;
+export type SplitMethod = (typeof SPLIT_METHODS)[number];
 
 @Entity({ name: 'expenses' })
 @Check('chk_expenses_amount_positive', '"amount" > 0')
+@Check('chk_expenses_split_method', `"split_method" IN ('EQUAL', 'CUSTOM', 'PERCENTAGE')`)
 // Main query: "this user's expenses, filtered/sorted by date".
 @Index('idx_expenses_user_date', ['userId', 'expenseDate'])
 // "This category's expenses in a date range". A category belongs to exactly one
@@ -49,6 +49,12 @@ export class Expense {
   @Column({ name: 'expense_date', type: 'date' })
   expenseDate: string;
 
+  // NULL = a normal personal expense. Otherwise the expense is split with the
+  // rows in `participants`; the owner's share is amount minus their shares.
+  // (A CHECK passes on NULL, so personal expenses need no special case.)
+  @Column({ name: 'split_method', type: 'varchar', length: 20, nullable: true })
+  splitMethod: SplitMethod | null;
+
   // Deleting a user deletes their expenses.
   @ManyToOne(() => User, (user) => user.expenses, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id', foreignKeyConstraintName: 'fk_expenses_user' })
@@ -58,6 +64,10 @@ export class Expense {
   @ManyToOne(() => Category, (category) => category.expenses, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'category_id', foreignKeyConstraintName: 'fk_expenses_category' })
   category: Category;
+
+  // Empty for personal expenses.
+  @OneToMany(() => ExpenseParticipant, (participant) => participant.expense)
+  participants: ExpenseParticipant[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

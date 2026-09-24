@@ -5,3 +5,4 @@ export { authApi } from './auth';
 export { categoriesApi } from './categories';
 export { expensesApi } from './expenses';
 export { dashboardApi } from './dashboard';
+export { contactsApi } from './contacts';

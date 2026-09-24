@@ -4,6 +4,7 @@ import { ButtonLink, EmptyState, ErrorState, Panel } from '@/components/ui';
 import { useApi } from '@/hooks/use-api';
 import { dashboardApi, expensesApi } from '@/lib/api';
 import { formatMoney, formatMonth, monthStartIso, todayIso } from '@/lib/format';
+import { toPaise } from '@/lib/split';
 import { CategoryPanel } from './category-panel';
 import { MonthChange } from './month-change';
 import { MonthlyPanel } from './monthly-panel';
@@ -32,11 +33,16 @@ export function DashboardView() {
 
   // Brand-new user: one friendly prompt instead of three empty charts.
   const isEmpty = s !== undefined && s.expenseCount === 0;
+  // Split tiles only once there is something split: for personal-only data
+  // "total paid" equals your spending and nothing is owed.
+  const hasSplitAmounts =
+    s !== undefined && (toPaise(s.totalPaid) !== toPaise(s.totalExpense) || s.owedToYou > 0 || s.settledToYou > 0);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile label="Total expenses" value={s && formatMoney(s.totalExpense)} footnote="All time" loading={summary.loading} />
+        {/* totalExpense is your own spending: your share of split expenses, not what you paid for others. */}
+        <StatTile label="Your spending" value={s && formatMoney(s.totalExpense)} footnote="All time" loading={summary.loading} />
         <StatTile
           label={s ? `Spent in ${formatMonth(s.currentMonth.month, 'long')}` : 'This month'}
           value={s && formatMoney(s.currentMonth.totalExpense)}
@@ -50,6 +56,18 @@ export function DashboardView() {
           loading={summary.loading}
         />
       </div>
+
+      {s && hasSplitAmounts && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatTile
+            label="Total paid"
+            value={formatMoney(s.totalPaid)}
+            footnote={`Incl. others’ shares · ${formatMoney(s.currentMonth.totalPaid)} this month`}
+          />
+          <StatTile label="Owed to you" value={formatMoney(s.owedToYou)} footnote="Shares not paid back yet" />
+          <StatTile label="Settled to you" value={formatMoney(s.settledToYou)} footnote="Shares paid back to you" />
+        </div>
+      )}
 
       {isEmpty ? (
         <Panel title="Get started">

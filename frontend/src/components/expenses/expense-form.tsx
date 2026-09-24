@@ -5,13 +5,16 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Alert, Button, FormField, Input, Select } from '@/components/ui';
 import { toFormErrors, type FieldErrors } from '@/lib/api';
 import { todayIso } from '@/lib/format';
-import { validateExpense, type ExpenseFormValues } from '@/lib/validation';
+import { initialSplitValues, toSplitInput, type SplitFormValues } from '@/lib/split';
+import { splitRowErrorKey, validateExpense, validateSplit, type ExpenseFormValues } from '@/lib/validation';
 import type { Category, CreateExpenseInput, Expense } from '@/types';
+import { ChoiceGroup, SplitFields } from './split-fields';
 
 type ExpenseFormProps = {
   categories: Category[];
   /** Pass an expense to edit it; omit to create a new one. */
   expense?: Expense;
+  /** `split` is only present when the user chose to split the expense. */
   onSubmit: (input: CreateExpenseInput) => Promise<void>;
   onCancel: () => void;
 };
@@ -25,9 +28,16 @@ function initialValues(expense?: Expense): ExpenseFormValues {
   };
 }
 
+const EXPENSE_TYPE_OPTIONS = [
+  { value: 'personal', label: 'Personal expense' },
+  { value: 'split', label: 'Split with others' },
+] as const;
+
 // Used for both "Add expense" and "Edit expense".
 export function ExpenseForm({ categories, expense, onSubmit, onCancel }: ExpenseFormProps) {
   const [values, setValues] = useState(() => initialValues(expense));
+  // The saved split is the source of truth; a personal expense starts as personal.
+  const [split, setSplit] = useState<SplitFormValues>(() => initialSplitValues(expense?.split));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -38,9 +48,21 @@ export function ExpenseForm({ categories, expense, onSubmit, onCancel }: Expense
     setErrors((errs) => ({ ...errs, [name]: '' }));
   }
 
+  function handleSplitChange(next: SplitFormValues) {
+    setSplit(next);
+    // Clear split errors (client ones and the API's split/participants/method) as the user edits.
+    setErrors((errs) =>
+      Object.fromEntries(
+        Object.entries(errs).filter(([key]) => !['split', 'participants', 'method'].includes(key) && !key.startsWith(splitRowErrorKey(''))),
+      ),
+    );
+  }
+
+  const settled = expense?.split?.participants.some((p) => p.status === 'PAID') ?? false;
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const clientErrors = validateExpense(values);
+    const clientErrors = { ...validateExpense(values), ...validateSplit(split, values.amount) };
     setErrors(clientErrors);
     setFormError(null);
     if (Object.keys(clientErrors).length > 0) return;
@@ -52,6 +74,8 @@ export function ExpenseForm({ categories, expense, onSubmit, onCancel }: Expense
         categoryId: values.categoryId,
         expenseDate: values.expenseDate,
         description: values.description.trim(), // "" clears it; the API stores null
+        // Personal expenses send no split at all, exactly as before.
+        ...(split.enabled ? { split: toSplitInput(split) } : {}),
       });
     } catch (err) {
       const { fieldErrors, message } = toFormErrors(err);
@@ -123,6 +147,26 @@ export function ExpenseForm({ categories, expense, onSubmit, onCancel }: Expense
           maxLength={255}
         />
       </FormField>
+
+      <fieldset className="flex flex-col gap-3 border-t border-border pt-4">
+        <legend className="sr-only">Split</legend>
+        <ChoiceGroup
+          label="Expense type"
+          options={[...EXPENSE_TYPE_OPTIONS]}
+          value={split.enabled ? 'split' : 'personal'}
+          onChange={(type) => handleSplitChange({ ...split, enabled: type === 'split' })}
+          disabled={submitting}
+        />
+        {settled && (
+          <Alert variant="warning">
+            Someone has already paid their share, so the amount and the split can’t change until their payment is
+            marked as pending again. You can still edit the date, category and description.
+          </Alert>
+        )}
+        {split.enabled && (
+          <SplitFields values={split} onChange={handleSplitChange} amount={values.amount} errors={errors} disabled={submitting} />
+        )}
+      </fieldset>
 
       <div className="mt-2 flex justify-end gap-2">
         <Button variant="secondary" onClick={onCancel} disabled={submitting}>
