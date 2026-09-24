@@ -55,6 +55,24 @@ export const components: OpenAPIV3_1.ComponentsObject = {
       in: 'path',
       required: true,
       schema: { type: 'string', format: 'uuid' },
+      example: '3f1c2a4e-8b7d-4c6a-9e2f-1a2b3c4d5e6f',
+    },
+    // validators/common.validator.ts isoDate. "from" must be on or before "to".
+    FromDateQuery: {
+      name: 'from',
+      in: 'query',
+      required: false,
+      description: 'Start date, inclusive (YYYY-MM-DD). Must be on or before `to`.',
+      schema: { type: 'string', format: 'date' },
+      example: '2026-09-01',
+    },
+    ToDateQuery: {
+      name: 'to',
+      in: 'query',
+      required: false,
+      description: 'End date, inclusive (YYYY-MM-DD).',
+      schema: { type: 'string', format: 'date' },
+      example: '2026-09-30',
     },
   },
 

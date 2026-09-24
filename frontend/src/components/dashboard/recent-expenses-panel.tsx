@@ -45,9 +45,20 @@ export function RecentExpensesPanel({ data, loading, refreshing, error, onRetry 
                   {e.category.name} · {formatDate(e.expenseDate)}
                 </p>
               </div>
-              <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-                {formatMoney(e.amount)}
-              </p>
+              {e.split ? (
+                // Your share is your spending; the full amount you paid is secondary.
+                <p className="shrink-0 text-right text-sm font-medium tabular-nums text-foreground" title={`Your share of ${formatMoney(e.amount)} paid`}>
+                  <span className="sr-only">Your share of {formatMoney(e.amount)} paid: </span>
+                  <span className="block">{formatMoney(e.split.ownShare)}</span>
+                  <span aria-hidden className="block text-xs font-normal text-muted-foreground">
+                    of {formatMoney(e.amount)}
+                  </span>
+                </p>
+              ) : (
+                <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
+                  {formatMoney(e.amount)}
+                </p>
+              )}
             </li>
           ))}
         </ul>

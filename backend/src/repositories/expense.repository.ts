@@ -1,7 +1,9 @@
+import type { EntityManager } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
-import { Expense } from '../entities/expense.entity';
+import { Expense, type SplitMethod } from '../entities/expense.entity';
 
-const repo = () => AppDataSource.getRepository(Expense);
+// Pass a transaction's manager to run inside that transaction.
+const repo = (manager: EntityManager = AppDataSource.manager) => manager.getRepository(Expense);
 
 export type ExpenseFilters = {
   categoryId?: string;
@@ -13,6 +15,10 @@ export type ExpenseFilters = {
 type ExpenseChanges = Partial<
   Pick<Expense, 'amount' | 'categoryId' | 'expenseDate' | 'description'>
 >;
+
+// update() may also set the split method (PUT /expenses/:id/split) or clear
+// it back to NULL (DELETE /expenses/:id/split).
+type ExpenseUpdate = ExpenseChanges & { splitMethod?: SplitMethod | null };
 
 // Escape LIKE wildcards so a search for "50%" matches the literal text.
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, '\\$&');
@@ -61,13 +67,17 @@ export const expenseRepository = {
     return { items, total };
   },
 
-  create(data: Required<ExpenseChanges> & { userId: string }) {
-    return repo().save(repo().create(data));
+  // splitMethod left out = NULL = a personal expense.
+  create(
+    data: Required<ExpenseChanges> & { userId: string; splitMethod?: SplitMethod },
+    manager?: EntityManager,
+  ) {
+    return repo(manager).save(repo(manager).create(data));
   },
 
   // UPDATE ... WHERE id = $1 AND user_id = $2
-  update(id: string, userId: string, changes: ExpenseChanges) {
-    return repo().update({ id, userId }, changes);
+  update(id: string, userId: string, changes: ExpenseUpdate, manager?: EntityManager) {
+    return repo(manager).update({ id, userId }, changes);
   },
 
   // DELETE ... WHERE id = $1 AND user_id = $2

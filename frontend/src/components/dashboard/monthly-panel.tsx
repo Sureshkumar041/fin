@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui';
 import { formatMoney, formatMoneyCompact, formatMonth } from '@/lib/format';
+import { toPaise } from '@/lib/split';
 import type { MonthlyTotalsResponse } from '@/types';
 
 type MonthlyPanelProps = {
@@ -31,7 +32,10 @@ const plural = (n: number) => `${n} expense${n === 1 ? '' : 's'}`;
 export function MonthlyPanel({ data, loading, refreshing, error, onRetry }: MonthlyPanelProps) {
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const months = data?.months ?? [];
-  const hasData = months.some((m) => m.totalExpense > 0);
+  // A month can have money paid but no own spending (a bill paid only for others).
+  const hasData = months.some((m) => m.totalExpense > 0 || m.totalPaid > 0);
+  // Show "total paid" only when it differs from your spending in some month (i.e. there are splits).
+  const showPaid = months.some((m) => toPaise(m.totalPaid) !== toPaise(m.totalExpense));
 
   return (
     <Panel
@@ -55,25 +59,51 @@ export function MonthlyPanel({ data, loading, refreshing, error, onRetry }: Mont
       ) : (
         <div className={refreshing ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
           {view === 'chart' ? (
-            <ColumnChart
-              ariaLabel="Total spending per month for the last 12 months"
-              formatValue={formatMoney}
-              formatTick={formatMoneyCompact}
-              data={months.map((m) => ({
-                key: m.month,
-                label: formatMonth(m.month),
-                longLabel: formatMonth(m.month, 'long'),
-                value: m.totalExpense,
-                detail: plural(m.expenseCount),
-              }))}
-            />
+            <>
+              {showPaid && (
+                <ul className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <li className="flex items-center gap-1.5">
+                    <span aria-hidden className="inline-block size-2.5 rounded-sm" style={{ background: 'var(--chart-series)' }} />
+                    Your spending
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className="inline-block size-2.5 rounded-sm border border-dashed"
+                      style={{ borderColor: 'var(--chart-series)', background: 'color-mix(in srgb, var(--chart-series) 18%, transparent)' }}
+                    />
+                    Total paid (incl. others’ shares)
+                  </li>
+                </ul>
+              )}
+              <ColumnChart
+                ariaLabel={
+                  showPaid
+                    ? 'Your spending and total paid per month for the last 12 months'
+                    : 'Total spending per month for the last 12 months'
+                }
+                formatValue={formatMoney}
+                formatTick={formatMoneyCompact}
+                valueLabel="your spending"
+                backgroundLabel="total paid"
+                data={months.map((m) => ({
+                  key: m.month,
+                  label: formatMonth(m.month),
+                  longLabel: formatMonth(m.month, 'long'),
+                  value: m.totalExpense,
+                  detail: plural(m.expenseCount),
+                  ...(showPaid ? { background: m.totalPaid } : {}),
+                }))}
+              />
+            </>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Month</TableHead>
                   <TableHead className="text-right">Expenses</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">{showPaid ? 'Your spending' : 'Total'}</TableHead>
+                  {showPaid && <TableHead className="text-right">Total paid</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -82,6 +112,9 @@ export function MonthlyPanel({ data, loading, refreshing, error, onRetry }: Mont
                     <TableCell>{formatMonth(m.month, 'long')}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">{m.expenseCount}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatMoney(m.totalExpense)}</TableCell>
+                    {showPaid && (
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{formatMoney(m.totalPaid)}</TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

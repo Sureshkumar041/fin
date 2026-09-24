@@ -12,6 +12,8 @@ type ApiState<T> = {
   /** True while new data loads and older data is still on screen. */
   refreshing: boolean;
   reload: () => void;
+  /** Replaces the loaded data locally, e.g. with an item a mutation returned (no refetch). */
+  setData: (update: (current: T | undefined) => T | undefined) => void;
 };
 
 /**
@@ -68,5 +70,6 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): ApiS
     loading: settledKey === null,
     refreshing: settledKey !== null && settledKey !== requestKey,
     reload,
+    setData,
   };
 }

@@ -20,9 +20,11 @@ import { useNotice } from '@/hooks/use-notice';
 import { categoriesApi, expensesApi, toFormErrors } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import type { CreateExpenseInput, Expense } from '@/types';
+import { ExpenseDetails } from './expense-details';
 import { ExpenseFiltersBar } from './expense-filters';
 import { ExpenseForm } from './expense-form';
 import { ExpenseList } from './expense-list';
+import { saveExpenseEdit } from './save-expense';
 import { useExpenseFilters } from './use-expense-filters';
 
 type FormState = { mode: 'create' } | { mode: 'edit'; expense: Expense } | null;
@@ -34,6 +36,9 @@ export function ExpensesView() {
 
   const [form, setForm] = useState<FormState>(null);
   const [toDelete, setToDelete] = useState<Expense | null>(null);
+  // Only the id: the expense itself always comes from the list data, so a
+  // settlement updates the row and the open details from one source.
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { notice, showNotice } = useNotice();
@@ -41,10 +46,27 @@ export function ExpensesView() {
   const categoryList = categories.data ?? [];
   const expenses = list.data?.expenses ?? [];
   const pagination = list.data?.pagination;
+  const viewing = expenses.find((e) => e.id === viewingId) ?? null;
+
+  // Puts an expense returned by the API (e.g. after a settlement) into the list.
+  function replaceExpense(updated: Expense) {
+    list.setData((data) => data && { ...data, expenses: data.expenses.map((e) => (e.id === updated.id ? updated : e)) });
+  }
 
   async function handleSave(input: CreateExpenseInput) {
     if (form?.mode === 'edit') {
-      await expensesApi.update(form.expense.id, input);
+      let latest = form.expense;
+      try {
+        await saveExpenseEdit(form.expense, input, (saved) => (latest = saved));
+      } catch (err) {
+        // Part of the edit was saved: keep the form open (with the user's input)
+        // but compare the next attempt against what is now saved, and refresh the list.
+        if (latest !== form.expense) {
+          setForm({ mode: 'edit', expense: latest });
+          list.reload();
+        }
+        throw err;
+      }
       showNotice('Expense updated.');
     } else {
       await expensesApi.create(input);
@@ -153,6 +175,7 @@ export function ExpensesView() {
                   <ExpenseList
                     expenses={expenses}
                     onEdit={(expense) => setForm({ mode: 'edit', expense })}
+                    onView={(expense) => setViewingId(expense.id)}
                     onDelete={(expense) => {
                       setDeleteError(null);
                       setToDelete(expense);
@@ -184,6 +207,20 @@ export function ExpensesView() {
             expense={form.mode === 'edit' ? form.expense : undefined}
             onSubmit={handleSave}
             onCancel={() => setForm(null)}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={viewing !== null} onClose={() => setViewingId(null)} title="Expense details">
+        {viewing && (
+          <ExpenseDetails
+            expense={viewing}
+            onUpdated={replaceExpense}
+            onClose={() => setViewingId(null)}
+            onEdit={() => {
+              setViewingId(null);
+              setForm({ mode: 'edit', expense: viewing });
+            }}
           />
         )}
       </Dialog>

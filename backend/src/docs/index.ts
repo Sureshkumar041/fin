@@ -14,7 +14,7 @@ docsRouter.use(
   '/api-docs',
   swaggerUi.serve,
   swaggerUi.setup(openApiDocument, {
-    customSiteTitle: 'Expense Tracker API Docs',
+    customSiteTitle: 'FIN API Docs',
     swaggerOptions: {
       persistAuthorization: true,
       displayRequestDuration: true,

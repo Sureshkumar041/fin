@@ -43,6 +43,13 @@ export const TagIcon = (p: IconProps) => (
     <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" />
   </Icon>
 );
+export const UsersIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2A6.5 6.5 0 0 1 21.5 20" />
+  </Icon>
+);
 export const WalletIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v3h-4a2 2 0 0 0 0 4h4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5" />

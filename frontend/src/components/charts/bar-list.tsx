@@ -6,6 +6,8 @@ export type BarListItem = {
   percentage: number;
   /** De-emphasised bar, used for the "Other" bucket. */
   muted?: boolean;
+  /** Optional small line under the label, e.g. "₹1,200.00 paid". */
+  detail?: string;
 };
 
 type BarListProps = {
@@ -33,6 +35,7 @@ export function BarList({ items, formatValue }: BarListProps) {
               </span>
             </span>
           </div>
+          {item.detail && <p className="text-xs text-muted-foreground tabular-nums">{item.detail}</p>}
           <div className="mt-1.5 h-2" aria-hidden>
             <div
               className="h-full rounded-r"

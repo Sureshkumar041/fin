@@ -13,6 +13,11 @@ export type ColumnDatum = {
   value: number;
   /** Extra tooltip line, e.g. "3 expenses" */
   detail?: string;
+  /**
+   * Optional larger total drawn behind the column as a lighter, dashed column
+   * (e.g. the full amount paid behind your own spending).
+   */
+  background?: number;
 };
 
 type ColumnChartProps = {
@@ -22,6 +27,9 @@ type ColumnChartProps = {
   /** Total height including the x-axis labels, so the card never scrolls. */
   height?: number;
   ariaLabel: string;
+  /** Names for `value` and `background` in the tooltip and screen-reader text. */
+  valueLabel?: string;
+  backgroundLabel?: string;
 };
 
 const MARGIN = { top: 20, right: 8, bottom: 28 };
@@ -35,14 +43,28 @@ function columnPath(x: number, y: number, w: number, h: number): string {
 }
 
 /**
- * Single-series column chart in plain SVG: hairline grid, thin columns,
- * a direct label on the latest value, and a hover/focus tooltip per column.
+ * Column chart in plain SVG: hairline grid, thin columns, a direct label on
+ * the latest value, and a hover/focus tooltip per column. A datum's optional
+ * `background` is drawn behind its column, lighter and dashed.
  */
-export function ColumnChart({ data, formatValue, formatTick, height = 240, ariaLabel }: ColumnChartProps) {
+export function ColumnChart({
+  data,
+  formatValue,
+  formatTick,
+  height = 240,
+  ariaLabel,
+  valueLabel,
+  backgroundLabel,
+}: ColumnChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
+  const peak = (d: ColumnDatum) => Math.max(d.value, d.background ?? 0);
+  const describe = (d: ColumnDatum) =>
+    d.background !== undefined
+      ? `${valueLabel ?? 'Value'} ${formatValue(d.value)}, ${backgroundLabel ?? 'Total'} ${formatValue(d.background)}`
+      : formatValue(d.value);
 
-  const ticks = niceTicks(Math.max(...data.map((d) => d.value), 0));
+  const ticks = niceTicks(Math.max(...data.map(peak), 0));
   const top = ticks[ticks.length - 1] || 1;
   const left = Math.max(...ticks.map((t) => formatTick(t).length)) * 7 + 10;
 
@@ -94,6 +116,16 @@ export function ColumnChart({ data, formatValue, formatTick, height = 240, ariaL
                 {active === i && (
                   <rect x={cx - band / 2} y={MARGIN.top} width={band} height={plotH} fill="var(--chart-hover)" />
                 )}
+                {d.background !== undefined && d.background > d.value && (
+                  <path
+                    d={columnPath(cx - barW / 2, y(d.background), barW, (d.background / top) * plotH)}
+                    fill="var(--chart-series)"
+                    fillOpacity={0.18}
+                    stroke="var(--chart-series)"
+                    strokeWidth={1}
+                    strokeDasharray="3 2"
+                  />
+                )}
                 {d.value > 0 && (
                   <path
                     d={columnPath(cx - barW / 2, y(d.value), barW, h)}
@@ -131,7 +163,7 @@ export function ColumnChart({ data, formatValue, formatTick, height = 240, ariaL
                   fill="transparent"
                   tabIndex={0}
                   role="img"
-                  aria-label={`${d.longLabel}: ${formatValue(d.value)}${d.detail ? `, ${d.detail}` : ''}`}
+                  aria-label={`${d.longLabel}: ${describe(d)}${d.detail ? `, ${d.detail}` : ''}`}
                   className="cursor-default outline-none focus-visible:stroke-ring"
                   onPointerEnter={() => setActive(i)}
                   onPointerLeave={() => setActive(null)}
@@ -150,11 +182,22 @@ export function ColumnChart({ data, formatValue, formatTick, height = 240, ariaL
           className="pointer-events-none absolute z-10 rounded-md border border-border bg-card px-3 py-2 text-xs whitespace-nowrap shadow-md"
           style={{
             left: Math.min(Math.max(tooltipX, 60), width - 60),
-            top: Math.max(y(activeDatum.value) - 10, 0),
+            top: Math.max(y(peak(activeDatum)) - 10, 0),
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <p className="text-sm font-semibold text-foreground">{formatValue(activeDatum.value)}</p>
+          {activeDatum.background !== undefined ? (
+            <>
+              <p className="text-sm font-semibold text-foreground">
+                {formatValue(activeDatum.value)} <span className="font-normal text-muted-foreground">{valueLabel}</span>
+              </p>
+              <p className="text-foreground">
+                {formatValue(activeDatum.background)} <span className="text-muted-foreground">{backgroundLabel}</span>
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-foreground">{formatValue(activeDatum.value)}</p>
+          )}
           <p className="text-muted-foreground">{activeDatum.longLabel}</p>
           {activeDatum.detail && <p className="text-muted-foreground">{activeDatum.detail}</p>}
         </div>

@@ -1,4 +1,5 @@
 import { dashboardRepository } from '../repositories/dashboard.repository';
+import { fromPaise, toPaise } from '../utils/money';
 import { addMonths, currentMonth, firstDay } from '../utils/month';
 import type {
   CategoriesQuery,
@@ -9,6 +10,14 @@ import type {
 // Money sums arrive as strings like "1234.50". Round to cents to clear any
 // floating-point noise after conversion.
 const toMoney = (value: string | number) => Math.round(Number(value) * 100) / 100;
+
+// Adds money values in integer paise, not floating-point rupees.
+const sumMoney = (values: (string | number)[]) =>
+  fromPaise(values.reduce<number>((sum, v) => sum + toPaise(Number(v)), 0));
+
+// Split expenses: totalExpense is the user's own spending (their share),
+// totalPaid the full amounts they paid. For personal expenses both are the
+// amount. owedToYou / settledToYou are the participants' PENDING / PAID shares.
 
 export const dashboardService = {
   async getSummary(userId: string, query: SummaryQuery) {
@@ -26,7 +35,12 @@ export const dashboardService = {
         month,
         totalExpense: toMoney(row.monthTotal),
         expenseCount: Number(row.monthCount),
+        totalPaid: toMoney(row.monthPaid),
       },
+      totalPaid: toMoney(row.paid),
+      // Balances across all months: what participants still owe / have paid back.
+      owedToYou: toMoney(row.owed),
+      settledToYou: toMoney(row.settled),
     };
   },
 
@@ -50,6 +64,7 @@ export const dashboardService = {
         month,
         totalExpense: row ? toMoney(row.total) : 0,
         expenseCount: row ? Number(row.count) : 0,
+        totalPaid: row ? toMoney(row.paid) : 0,
       };
     });
 
@@ -58,12 +73,13 @@ export const dashboardService = {
 
   async getCategories(userId: string, query: CategoriesQuery) {
     const rows = await dashboardRepository.getCategoryTotals(userId, query);
-    const grandTotal = toMoney(rows.reduce((sum, r) => sum + Number(r.total), 0));
+    const grandTotal = sumMoney(rows.map((r) => r.total));
 
     return {
       from: query.from ?? null,
       to: query.to ?? null,
       totalExpense: grandTotal,
+      totalPaid: sumMoney(rows.map((r) => r.paid)),
       categories: rows.map((r) => {
         const total = toMoney(r.total);
         return {
@@ -71,6 +87,7 @@ export const dashboardService = {
           name: r.name,
           totalExpense: total,
           expenseCount: Number(r.count),
+          totalPaid: toMoney(r.paid),
           // Share of spending in the range, for pie/bar charts.
           percentage: grandTotal > 0 ? Math.round((total / grandTotal) * 10000) / 100 : 0,
         };

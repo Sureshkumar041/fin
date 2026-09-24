@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Category } from './category.entity';
 import { Expense } from './expense.entity';
+import { Contact } from './contact.entity';
 
 @Entity({ name: 'users' })
 @Unique('uq_users_email', ['email'])
@@ -33,6 +34,9 @@ export class User {
 
   @OneToMany(() => Expense, (expense) => expense.user)
   expenses: Expense[];
+
+  @OneToMany(() => Contact, (contact) => contact.user)
+  contacts: Contact[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
