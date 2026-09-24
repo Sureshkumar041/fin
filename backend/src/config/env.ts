@@ -36,6 +36,7 @@ const nodeEnv = optional('NODE_ENV', 'development');
 // Read and validate once at startup so the app fails fast on bad config.
 export const env = {
   nodeEnv,
+  sameSite: required('SAME_SITE'),
   isProduction: nodeEnv === 'production',
   port: toNumber('PORT', optional('PORT', '8080')),
   clientUrl: required('CLIENT_URL'),
