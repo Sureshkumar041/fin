@@ -1,0 +1,2472 @@
+{
+  "info": {
+    "name": "Expense Tracker API",
+    "_postman_id": "b6f0a8b2-6c1e-4b8e-9a51-5d3f0e7c2a10",
+    "description": "REST API for the Expense Tracker backend (Express + TypeScript + TypeORM + PostgreSQL).\n\n## Setup\n1. Import this collection and the **Expense Tracker - Local** environment, then select the environment.\n2. Start the backend (`cd backend && npm run dev`). It listens on `http://localhost:8080/api`.\n3. Run **Auth → Register** (first time) or **Auth → Login**.\n\n## Authentication (HTTP-only cookie)\nThe API does not use an `Authorization` header. Login and register respond with\n`Set-Cookie: access_token=<JWT>; HttpOnly; SameSite=Lax`. Postman saves that cookie in its\n**cookie jar** and automatically sends it on every later request to `localhost`, the same way a\nbrowser would. That is why the collection auth type is **No Auth**, and no token is ever copied\ninto a header, body or variable. Logout clears the cookie.\n\n## Running everything\nUse **Run collection** (or `npx newman run ...`). Folders run top to bottom and pass IDs along\nvia collection variables (`categoryId`, `expenseId`, ...). The whole collection can be re-run.\n\n## Adding endpoints\nOne folder per route module (matching `backend/src/routes/*.routes.ts`). Put requests that\nneed data from earlier ones after them, save IDs with `pm.collectionVariables.set(...)`, and\nrely on the collection-level tests for the shared JSON and error-format checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Date helpers available to every request as {{today}}, {{monthStart}}, {{currentMonth}}.",
+          "// Uses your local date, like the frontend would.",
+          "const now = new Date();",
+          "const pad = (n) => String(n).padStart(2, '0');",
+          "const month = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;",
+          "pm.collectionVariables.set('currentMonth', month);",
+          "pm.collectionVariables.set('monthStart', `${month}-01`);",
+          "pm.collectionVariables.set('today', `${month}-${pad(now.getDate())}`);"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Runs after every request in the collection.",
+          "pm.test('Responds within 2 seconds', () => {",
+          "  pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "if (pm.response.code !== 204) {",
+          "  pm.test('Response is JSON', () => pm.response.to.be.json);",
+          "}",
+          "// Every API error uses { code, message, details? }. (/health's 503 is a health report, not an error.)",
+          "if (pm.response.code >= 400 && pm.info.requestName !== 'Health check') {",
+          "  pm.test('Error has code and message', () => {",
+          "    const body = pm.response.json();",
+          "    pm.expect(body.code).to.be.a('string');",
+          "    pm.expect(body.message).to.be.a('string');",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "categoryId",
+      "value": "",
+      "description": "Set by Categories → Create category"
+    },
+    {
+      "key": "deleteCategoryId",
+      "value": "",
+      "description": "Set by Categories → Create category (to delete)"
+    },
+    {
+      "key": "expenseId",
+      "value": "",
+      "description": "Set by Expenses → Create expense"
+    },
+    {
+      "key": "deleteExpenseId",
+      "value": "",
+      "description": "Set by Expenses → Create expense (to delete)"
+    },
+    {
+      "key": "today",
+      "value": "",
+      "description": "Set by the collection pre-request script (YYYY-MM-DD)"
+    },
+    {
+      "key": "monthStart",
+      "value": "",
+      "description": "Set by the collection pre-request script (YYYY-MM-01)"
+    },
+    {
+      "key": "currentMonth",
+      "value": "",
+      "description": "Set by the collection pre-request script (YYYY-MM)"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Service status. Public, no login needed.",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('API and database are healthy', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.database).to.eql('up');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Checks that the API and database are up. Returns **503** with `status: \"degraded\"` if PostgreSQL is unreachable."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"ok\",\n  \"database\": \"up\",\n  \"databaseTime\": \"2026-09-23T11:24:50.430Z\",\n  \"uptime\": 8,\n  \"timestamp\": \"2026-09-23T11:24:50.430Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Registration, login, logout and the current user.\n\nLogin/register respond with `Set-Cookie: access_token=...; HttpOnly`. Postman stores it in its cookie jar and sends it with every later request to the same host, exactly like a browser. No token is ever copied by hand.\n\nOrder when run top to bottom: register → logout → confirm logged out → login → confirm logged in. It ends logged in so the following folders work.",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 (created) or 409 (already registered)', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.test('Returns the user', () => {",
+                  "    const { user } = pm.response.json();",
+                  "    pm.expect(user).to.include.keys('id', 'name', 'email', 'createdAt');",
+                  "    pm.expect(user.email).to.eql(pm.environment.get('userEmail').toLowerCase());",
+                  "  });",
+                  "  const setCookie = pm.response.headers.all()",
+                  "    .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "    .map((h) => h.value).join('\\n');",
+                  "  pm.test('Sets an HTTP-only auth cookie', () => {",
+                  "    pm.expect(setCookie).to.include('access_token=');",
+                  "    pm.expect(setCookie).to.include('HttpOnly');",
+                  "  });",
+                  "}",
+                  "pm.test('passwordHash is never exposed', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json())).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates an account and logs it in (sets the auth cookie).\n\nReturns **409** if the email is already registered. The test accepts that too, so the collection can be re-run.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{userName}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{userName}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Set-Cookie",
+                  "value": "access_token=<jwt>; Max-Age=604800; Path=/; Expires=Wed, 30 Sep 2026 11:24:50 GMT; HttpOnly; SameSite=Lax"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": \"f2b28b1b-0a97-4706-a015-995f1b0b5fe5\",\n    \"name\": \"Demo User\",\n    \"email\": \"demo@example.com\",\n    \"createdAt\": \"2026-09-23T11:24:50.728Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Email already registered",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"{{userName}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"message\": \"Email is already registered\"\n}"
+            },
+            {
+              "name": "400 Validation failed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\",\n  \"email\": \"not-an-email\",\n  \"password\": \"short\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Validation failed\",\n  \"details\": {\n    \"name\": [\n      \"Name is required\"\n    ],\n    \"email\": [\n      \"Invalid email address\"\n    ],\n    \"password\": [\n      \"Password must be at least 8 characters\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value).join('\\n');",
+                  "pm.test('Clears the auth cookie', () => {",
+                  "  pm.expect(setCookie).to.match(/access_token=;/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Clears the auth cookie. Always returns **204**, even if not logged in."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Set-Cookie",
+                  "value": "access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax"
+                }
+              ],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Get current user (logged out)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Error code is UNAUTHENTICATED', () => {",
+                  "  pm.expect(pm.response.json().code).to.eql('UNAUTHENTICATED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Negative check: right after logout, the protected endpoint must return **401**."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHENTICATED\",\n  \"message\": \"Not authenticated\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns the user', () => {",
+                  "  const { user } = pm.response.json();",
+                  "  pm.expect(user).to.include.keys('id', 'name', 'email', 'createdAt');",
+                  "  pm.expect(user.email).to.eql(pm.environment.get('userEmail').toLowerCase());",
+                  "});",
+                  "const setCookie = pm.response.headers.all()",
+                  "  .filter((h) => h.key.toLowerCase() === 'set-cookie')",
+                  "  .map((h) => h.value).join('\\n');",
+                  "pm.test('Sets an HTTP-only auth cookie', () => {",
+                  "  pm.expect(setCookie).to.include('access_token=');",
+                  "  pm.expect(setCookie).to.include('HttpOnly');",
+                  "});",
+                  "pm.test('passwordHash is never exposed', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json())).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logs in and sets the HTTP-only `access_token` cookie. Wrong email or password → **401**.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Set-Cookie",
+                  "value": "access_token=<jwt>; Max-Age=604800; Path=/; Expires=Wed, 30 Sep 2026 11:24:51 GMT; HttpOnly; SameSite=Lax"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": \"f2b28b1b-0a97-4706-a015-995f1b0b5fe5\",\n    \"name\": \"Demo User\",\n    \"email\": \"demo@example.com\",\n    \"createdAt\": \"2026-09-23T11:24:50.728Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Invalid credentials",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"demo@example.com\",\n  \"password\": \"wrong-password\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHENTICATED\",\n  \"message\": \"Invalid email or password\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get current user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns the user', () => {",
+                  "  const { user } = pm.response.json();",
+                  "  pm.expect(user).to.include.keys('id', 'name', 'email', 'createdAt');",
+                  "  pm.expect(user.email).to.eql(pm.environment.get('userEmail').toLowerCase());",
+                  "});",
+                  "pm.test('passwordHash is never exposed', () => {",
+                  "  pm.expect(JSON.stringify(pm.response.json())).to.not.include('passwordHash');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Returns the logged-in user. Uses the cookie from Login automatically."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"user\": {\n    \"id\": \"f2b28b1b-0a97-4706-a015-995f1b0b5fe5\",\n    \"name\": \"Demo User\",\n    \"email\": \"demo@example.com\",\n    \"createdAt\": \"2026-09-23T11:24:50.728Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "description": "CRUD for the logged-in user's categories. Requires login (run **Auth → Login** first).\n\n`Create category` saves `categoryId`, which later requests (and the Expenses folder) use. Names include `{{$timestamp}}` so re-running never hits the duplicate-name rule.",
+      "item": [
+        {
+          "name": "Create category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns a category', () => {",
+                  "  const { category } = pm.response.json();",
+                  "  pm.expect(category).to.include.keys('id', 'name', 'createdAt', 'updatedAt');",
+                  "});",
+                  "pm.collectionVariables.set('categoryId', pm.response.json().category.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Food {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Food {{$timestamp}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"category\": {\n    \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n    \"name\": \"Food 1790162691\",\n    \"createdAt\": \"2026-09-23T11:24:51.142Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.142Z\"\n  }\n}"
+            },
+            {
+              "name": "400 Validation failed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Validation failed\",\n  \"details\": {\n    \"name\": [\n      \"Name is required\"\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 Duplicate name",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Food\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"message\": \"A category with this name already exists\"\n}"
+            },
+            {
+              "name": "401 Not logged in",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Food\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHENTICATED\",\n  \"message\": \"Not authenticated\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Contains the created category', () => {",
+                  "  const { categories } = pm.response.json();",
+                  "  pm.expect(categories).to.be.an('array');",
+                  "  pm.expect(categories.map((c) => c.id)).to.include(pm.collectionVariables.get('categoryId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "description": "All of the user's categories, sorted by name."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"categories\": [\n    {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Food 1790162691\",\n      \"createdAt\": \"2026-09-23T11:24:51.142Z\",\n      \"updatedAt\": \"2026-09-23T11:24:51.142Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns a category', () => {",
+                  "  const { category } = pm.response.json();",
+                  "  pm.expect(category).to.include.keys('id', 'name', 'createdAt', 'updatedAt');",
+                  "});",
+                  "pm.test('Is the requested category', () => {",
+                  "  pm.expect(pm.response.json().category.id).to.eql(pm.collectionVariables.get('categoryId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "description": "Returns **404** if the category does not exist *or belongs to another user*."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"category\": {\n    \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n    \"name\": \"Food 1790162691\",\n    \"createdAt\": \"2026-09-23T11:24:51.142Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.142Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"NOT_FOUND\",\n  \"message\": \"Category not found\"\n}"
+            },
+            {
+              "name": "400 Invalid id",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Invalid URL parameters\",\n  \"details\": {\n    \"id\": [\n      \"Invalid id\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns a category', () => {",
+                  "  const { category } = pm.response.json();",
+                  "  pm.expect(category).to.include.keys('id', 'name', 'createdAt', 'updatedAt');",
+                  "});",
+                  "pm.test('Name was updated', () => {",
+                  "  pm.expect(pm.response.json().category.name).to.match(/^Groceries /);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Groceries {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Groceries {{$timestamp}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"category\": {\n    \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n    \"name\": \"Groceries 1790162691\",\n    \"createdAt\": \"2026-09-23T11:24:51.142Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.222Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create category (to delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('deleteCategoryId', pm.response.json().category.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "description": "Creates a throwaway category for **Delete category**, so the main `categoryId` stays usable for expenses.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Temporary {{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Temporary {{$timestamp}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"category\": {\n    \"id\": \"7485d34b-7b38-4d90-b639-69be6b00b0dc\",\n    \"name\": \"Temporary 1790162691\",\n    \"createdAt\": \"2026-09-23T11:24:51.254Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.254Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{deleteCategoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{deleteCategoryId}}"
+              ]
+            },
+            "description": "Returns **204**. Returns **409** if expenses still use the category."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{deleteCategoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{deleteCategoryId}}"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            },
+            {
+              "name": "409 Category has expenses",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories/{{deleteCategoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "categories",
+                    "{{deleteCategoryId}}"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"message\": \"Category has expenses; move or delete them first\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "description": "CRUD for the logged-in user's expenses, with pagination, filters and search. Requires login and `categoryId` (run **Categories → Create category** first).\n\n`{{today}}`, `{{monthStart}}` and `{{currentMonth}}` are set automatically by the collection pre-request script.",
+      "item": [
+        {
+          "name": "Create expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns an expense', () => {",
+                  "  const { expense } = pm.response.json();",
+                  "  pm.expect(expense).to.include.keys('id', 'amount', 'description', 'expenseDate', 'category', 'createdAt', 'updatedAt');",
+                  "  pm.expect(expense.amount).to.be.a('number');",
+                  "  pm.expect(expense.category).to.include.keys('id', 'name');",
+                  "});",
+                  "pm.test('Uses the given category', () => {",
+                  "  pm.expect(pm.response.json().expense.category.id).to.eql(pm.collectionVariables.get('categoryId'));",
+                  "});",
+                  "pm.collectionVariables.set('expenseId', pm.response.json().expense.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "description": "`amount` > 0 with at most 2 decimals; `expenseDate` is `YYYY-MM-DD`; `categoryId` must be one of *your* categories; `description` is optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 12.5,\n  \"categoryId\": \"{{categoryId}}\",\n  \"expenseDate\": \"{{today}}\",\n  \"description\": \"Lunch with team\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 12.5,\n  \"categoryId\": \"{{categoryId}}\",\n  \"expenseDate\": \"{{today}}\",\n  \"description\": \"Lunch with team\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expense\": {\n    \"id\": \"c1a71e52-7ffa-4593-a8cc-f28a54c81635\",\n    \"amount\": 12.5,\n    \"description\": \"Lunch with team\",\n    \"expenseDate\": \"2026-09-23\",\n    \"category\": {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\"\n    },\n    \"createdAt\": \"2026-09-23T11:24:51.317Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.317Z\"\n  }\n}"
+            },
+            {
+              "name": "400 Validation failed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": -5,\n  \"categoryId\": \"{{categoryId}}\",\n  \"expenseDate\": \"2026-02-30\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Validation failed\",\n  \"details\": {\n    \"amount\": [\n      \"Amount must be greater than 0\"\n    ],\n    \"expenseDate\": [\n      \"Date must be a valid date in YYYY-MM-DD format\"\n    ]\n  }\n}"
+            },
+            {
+              "name": "400 Category not owned",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 10,\n  \"categoryId\": \"00000000-0000-4000-8000-000000000000\",\n  \"expenseDate\": \"2026-09-23\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Validation failed\",\n  \"details\": {\n    \"categoryId\": [\n      \"Category not found\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List expenses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has expenses array and pagination metadata', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.expenses).to.be.an('array');",
+                  "  pm.expect(body.pagination).to.include.keys('page', 'limit', 'total', 'totalPages');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1 or more)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (1-100)"
+                }
+              ]
+            },
+            "description": "Newest first. `page` defaults to 1, `limit` to 20 (max 100)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (1 or more)"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "Items per page (1-100)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expenses\": [\n    {\n      \"id\": \"c1a71e52-7ffa-4593-a8cc-f28a54c81635\",\n      \"amount\": 12.5,\n      \"description\": \"Lunch with team\",\n      \"expenseDate\": \"2026-09-23\",\n      \"category\": {\n        \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n        \"name\": \"Groceries 1790162691\"\n      },\n      \"createdAt\": \"2026-09-23T11:24:51.317Z\",\n      \"updatedAt\": \"2026-09-23T11:24:51.317Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List expenses (filtered)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has expenses array and pagination metadata', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.expenses).to.be.an('array');",
+                  "  pm.expect(body.pagination).to.include.keys('page', 'limit', 'total', 'totalPages');",
+                  "});",
+                  "pm.test('Every result matches the filters', () => {",
+                  "  const q = pm.request.url.query.toObject();",
+                  "  const categoryId = pm.variables.replaceIn(q.categoryId);",
+                  "  const from = pm.variables.replaceIn(q.from);",
+                  "  const to = pm.variables.replaceIn(q.to);",
+                  "  pm.response.json().expenses.forEach((e) => {",
+                  "    pm.expect(e.category.id).to.eql(categoryId);",
+                  "    pm.expect(e.expenseDate >= from && e.expenseDate <= to).to.be.true;",
+                  "    pm.expect(e.description.toLowerCase()).to.include(q.search.toLowerCase());",
+                  "  });",
+                  "});",
+                  "pm.test('Finds the created expense', () => {",
+                  "  pm.expect(pm.response.json().expenses.map((e) => e.id)).to.include(pm.collectionVariables.get('expenseId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses?page=1&limit=10&categoryId={{categoryId}}&from={{monthStart}}&to={{today}}&search=lunch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1 or more)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (1-100)"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "description": "Only this category (UUID)"
+                },
+                {
+                  "key": "from",
+                  "value": "{{monthStart}}",
+                  "description": "On or after this date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}",
+                  "description": "On or before this date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "search",
+                  "value": "lunch",
+                  "description": "Text to find in the description"
+                }
+              ]
+            },
+            "description": "All filters are optional and can be combined. `from`/`to` are inclusive. `search` is a case-insensitive match on the description."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses?page=1&limit=10&categoryId={{categoryId}}&from={{monthStart}}&to={{today}}&search=lunch",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (1 or more)"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Items per page (1-100)"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Only this category (UUID)"
+                    },
+                    {
+                      "key": "from",
+                      "value": "{{monthStart}}",
+                      "description": "On or after this date (YYYY-MM-DD)"
+                    },
+                    {
+                      "key": "to",
+                      "value": "{{today}}",
+                      "description": "On or before this date (YYYY-MM-DD)"
+                    },
+                    {
+                      "key": "search",
+                      "value": "lunch",
+                      "description": "Text to find in the description"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expenses\": [\n    {\n      \"id\": \"c1a71e52-7ffa-4593-a8cc-f28a54c81635\",\n      \"amount\": 12.5,\n      \"description\": \"Lunch with team\",\n      \"expenseDate\": \"2026-09-23\",\n      \"category\": {\n        \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n        \"name\": \"Groceries 1790162691\"\n      },\n      \"createdAt\": \"2026-09-23T11:24:51.317Z\",\n      \"updatedAt\": \"2026-09-23T11:24:51.317Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "400 Invalid query",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses?page=1&limit=10&categoryId={{categoryId}}&from={{monthStart}}&to={{today}}&search=lunch",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (1 or more)"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Items per page (1-100)"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "{{categoryId}}",
+                      "description": "Only this category (UUID)"
+                    },
+                    {
+                      "key": "from",
+                      "value": "{{monthStart}}",
+                      "description": "On or after this date (YYYY-MM-DD)"
+                    },
+                    {
+                      "key": "to",
+                      "value": "{{today}}",
+                      "description": "On or before this date (YYYY-MM-DD)"
+                    },
+                    {
+                      "key": "search",
+                      "value": "lunch",
+                      "description": "Text to find in the description"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Invalid query parameters\",\n  \"details\": {\n    \"page\": [\n      \"page must be a whole number of 1 or more\"\n    ],\n    \"limit\": [\n      \"limit must be a whole number between 1 and 100\"\n    ],\n    \"from\": [\n      \"\\\"from\\\" must be on or before \\\"to\\\"\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an expense', () => {",
+                  "  const { expense } = pm.response.json();",
+                  "  pm.expect(expense).to.include.keys('id', 'amount', 'description', 'expenseDate', 'category', 'createdAt', 'updatedAt');",
+                  "  pm.expect(expense.amount).to.be.a('number');",
+                  "  pm.expect(expense.category).to.include.keys('id', 'name');",
+                  "});",
+                  "pm.test('Is the requested expense', () => {",
+                  "  pm.expect(pm.response.json().expense.id).to.eql(pm.collectionVariables.get('expenseId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{expenseId}}"
+              ]
+            },
+            "description": "Returns **404** if the expense does not exist *or belongs to another user*."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses",
+                    "{{expenseId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expense\": {\n    \"id\": \"c1a71e52-7ffa-4593-a8cc-f28a54c81635\",\n    \"amount\": 12.5,\n    \"description\": \"Lunch with team\",\n    \"expenseDate\": \"2026-09-23\",\n    \"category\": {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\"\n    },\n    \"createdAt\": \"2026-09-23T11:24:51.317Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.317Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses",
+                    "{{expenseId}}"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"NOT_FOUND\",\n  \"message\": \"Expense not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an expense', () => {",
+                  "  const { expense } = pm.response.json();",
+                  "  pm.expect(expense).to.include.keys('id', 'amount', 'description', 'expenseDate', 'category', 'createdAt', 'updatedAt');",
+                  "  pm.expect(expense.amount).to.be.a('number');",
+                  "  pm.expect(expense.category).to.include.keys('id', 'name');",
+                  "});",
+                  "pm.test('Fields were updated', () => {",
+                  "  const { expense } = pm.response.json();",
+                  "  pm.expect(expense.amount).to.eql(15.75);",
+                  "  pm.expect(expense.description).to.eql('Lunch with team (incl. tip)');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{expenseId}}"
+              ]
+            },
+            "description": "Partial update: send any of `amount`, `categoryId`, `expenseDate`, `description` (at least one). Send `\"description\": \"\"` to clear it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 15.75,\n  \"description\": \"Lunch with team (incl. tip)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses",
+                    "{{expenseId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 15.75,\n  \"description\": \"Lunch with team (incl. tip)\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expense\": {\n    \"id\": \"c1a71e52-7ffa-4593-a8cc-f28a54c81635\",\n    \"amount\": 15.75,\n    \"description\": \"Lunch with team (incl. tip)\",\n    \"expenseDate\": \"2026-09-23\",\n    \"category\": {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\"\n    },\n    \"createdAt\": \"2026-09-23T11:24:51.317Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.417Z\"\n  }\n}"
+            },
+            {
+              "name": "400 Empty update",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses/{{expenseId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses",
+                    "{{expenseId}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Provide at least one field to update\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create expense (to delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('deleteExpenseId', pm.response.json().expense.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "description": "Creates a throwaway expense for **Delete expense**, so the main expense remains for the Dashboard folder.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 3.2,\n  \"categoryId\": \"{{categoryId}}\",\n  \"expenseDate\": \"{{today}}\",\n  \"description\": \"Coffee\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 3.2,\n  \"categoryId\": \"{{categoryId}}\",\n  \"expenseDate\": \"{{today}}\",\n  \"description\": \"Coffee\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"expense\": {\n    \"id\": \"c356b1ee-d274-470f-aa50-08c79eb9c33e\",\n    \"amount\": 3.2,\n    \"description\": \"Coffee\",\n    \"expenseDate\": \"2026-09-23\",\n    \"category\": {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\"\n    },\n    \"createdAt\": \"2026-09-23T11:24:51.446Z\",\n    \"updatedAt\": \"2026-09-23T11:24:51.446Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{deleteExpenseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{deleteExpenseId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/expenses/{{deleteExpenseId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "expenses",
+                    "{{deleteExpenseId}}"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Aggregated totals for the logged-in user, computed in PostgreSQL. Requires login.",
+      "item": [
+        {
+          "name": "Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has totals and counts', () => {",
+                  "  const { summary } = pm.response.json();",
+                  "  pm.expect(summary.totalExpense).to.be.a('number');",
+                  "  pm.expect(summary.expenseCount).to.be.a('number');",
+                  "  pm.expect(summary.currentMonth).to.include.keys('month', 'totalExpense', 'expenseCount');",
+                  "  pm.expect(summary.currentMonth.month).to.eql(pm.collectionVariables.get('currentMonth'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/summary?month={{currentMonth}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "{{currentMonth}}",
+                  "description": "Optional. Month to treat as current (YYYY-MM)"
+                }
+              ]
+            },
+            "description": "All-time total and count, plus totals for the current month. `month` (YYYY-MM) is optional and lets the client decide what \"current month\" means in the user's timezone."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/summary?month={{currentMonth}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "{{currentMonth}}",
+                      "description": "Optional. Month to treat as current (YYYY-MM)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"summary\": {\n    \"totalExpense\": 15.75,\n    \"expenseCount\": 1,\n    \"currentMonth\": {\n      \"month\": \"2026-09\",\n      \"totalExpense\": 15.75,\n      \"expenseCount\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Monthly totals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns one entry per month, ending at the current month', () => {",
+                  "  const { months, to } = pm.response.json();",
+                  "  pm.expect(months).to.have.lengthOf(6);",
+                  "  pm.expect(to).to.eql(pm.collectionVariables.get('currentMonth'));",
+                  "  months.forEach((m) => pm.expect(m).to.include.keys('month', 'totalExpense', 'expenseCount'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/monthly?months=6&month={{currentMonth}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "monthly"
+              ],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "6",
+                  "description": "How many months (1-36). Default 12"
+                },
+                {
+                  "key": "month",
+                  "value": "{{currentMonth}}",
+                  "description": "Optional. Last month of the range (YYYY-MM)"
+                }
+              ]
+            },
+            "description": "Totals per month for the last `months` months (1-36, default 12), ending at `month`. Months without expenses are included with 0."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/monthly?months=6&month={{currentMonth}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "monthly"
+                  ],
+                  "query": [
+                    {
+                      "key": "months",
+                      "value": "6",
+                      "description": "How many months (1-36). Default 12"
+                    },
+                    {
+                      "key": "month",
+                      "value": "{{currentMonth}}",
+                      "description": "Optional. Last month of the range (YYYY-MM)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"from\": \"2026-04\",\n  \"to\": \"2026-09\",\n  \"months\": [\n    {\n      \"month\": \"2026-04\",\n      \"totalExpense\": 0,\n      \"expenseCount\": 0\n    },\n    {\n      \"month\": \"2026-05\",\n      \"totalExpense\": 0,\n      \"expenseCount\": 0\n    },\n    {\n      \"month\": \"2026-06\",\n      \"totalExpense\": 0,\n      \"expenseCount\": 0\n    },\n    {\n      \"month\": \"2026-07\",\n      \"totalExpense\": 0,\n      \"expenseCount\": 0\n    },\n    {\n      \"month\": \"2026-08\",\n      \"totalExpense\": 0,\n      \"expenseCount\": 0\n    },\n    {\n      \"month\": \"2026-09\",\n      \"totalExpense\": 15.75,\n      \"expenseCount\": 1\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Totals by category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns categories with totals and percentages', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.totalExpense).to.be.a('number');",
+                  "  pm.expect(body.categories).to.be.an('array');",
+                  "  body.categories.forEach((c) => pm.expect(c).to.include.keys('id', 'name', 'totalExpense', 'expenseCount', 'percentage'));",
+                  "  pm.expect(body.categories.map((c) => c.id)).to.include(pm.collectionVariables.get('categoryId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/categories?from={{monthStart}}&to={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "categories"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{monthStart}}",
+                  "description": "Optional. On or after this date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}",
+                  "description": "Optional. On or before this date (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Totals per category, highest first, with each category's share of the total. `from`/`to` are optional and inclusive; omit both for all time."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/categories?from={{monthStart}}&to={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "{{monthStart}}",
+                      "description": "Optional. On or after this date (YYYY-MM-DD)"
+                    },
+                    {
+                      "key": "to",
+                      "value": "{{today}}",
+                      "description": "Optional. On or before this date (YYYY-MM-DD)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"from\": \"2026-09-01\",\n  \"to\": \"2026-09-23\",\n  \"totalExpense\": 15.75,\n  \"categories\": [\n    {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\",\n      \"totalExpense\": 15.75,\n      \"expenseCount\": 1,\n      \"percentage\": 100\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

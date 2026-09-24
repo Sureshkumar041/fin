@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens
+ * =============
+ * Every colour in the app comes from the variables below. Components use them
+ * through Tailwind utilities generated in @theme (bg-card, text-muted-foreground,
+ * border-border, bg-primary, ...), never raw colours like zinc-500 or #fff.
+ *
+ * Light values live on :root, dark values on .dark (set on <html> by the
+ * theme script in app/layout.tsx). Text/background pairs are checked for
+ * WCAG AA: >= 4.5:1 for text, >= 3:1 for input borders and focus rings.
+ */
+
+/* `dark:` utilities follow the .dark class (the theme toggle), not only the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --background: #f6f8f7; /* page */
+  --foreground: #0f1a16; /* main text */
+  --card: #ffffff; /* cards, panels, dialogs, sidebar */
+  --card-foreground: #0f1a16;
+  --muted: #eef2f0; /* subtle fills: hover rows, skeletons, table headers */
+  --muted-foreground: #55635d; /* secondary text: 6.3:1 on card */
+  --border: #e2e8e5; /* dividers and card outlines */
+  --input: #86948e; /* form control borders: 3.2:1 on card */
+  --ring: #059669; /* keyboard focus outline: 3.8:1 on card */
+  --overlay: rgb(15 26 22 / 0.45); /* behind modals */
+
+  /* Brand */
+  --primary: #047857; /* emerald-700: white text 5.5:1 */
+  --primary-foreground: #ffffff;
+  --primary-soft: #e6f5ee; /* active nav item, selected states */
+  --secondary: #eef2f0;
+  --secondary-foreground: #1c2b25;
+
+  /* Status: `--x` is text/icon colour, `--x-soft` its tinted background */
+  --success: #15803d;
+  --success-soft: #ecfdf3;
+  --warning: #a15c07;
+  --warning-soft: #fef7e6;
+  --danger: #c0262d;
+  --danger-soft: #fef2f2;
+  --danger-solid: #c0262d; /* destructive buttons, with white text */
+
+  /* Charts (single-series colour validated for contrast on the card) */
+  --chart-series: #059669;
+  --chart-other: #a3aea9;
+  --chart-grid: #eef2f0;
+  --chart-axis: #cfd8d4;
+  --chart-hover: #f3f6f4;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0a100e;
+  --foreground: #e8eeeb;
+  --card: #111916;
+  --card-foreground: #e8eeeb;
+  --muted: #18221e;
+  --muted-foreground: #9aa8a2; /* 7.2:1 on card */
+  --border: #24312c;
+  --input: #627069; /* 3.4:1 on card */
+  --ring: #34d399;
+  --overlay: rgb(0 0 0 / 0.6);
+
+  --primary: #34d399; /* emerald-400 with dark text: 7.9:1 */
+  --primary-foreground: #022c1f;
+  --primary-soft: #10261e;
+  --secondary: #1b2622;
+  --secondary-foreground: #e0e8e4;
+
+  --success: #4ade80;
+  --success-soft: #0f2a1c;
+  --warning: #fbbf24;
+  --warning-soft: #2e2207;
+  --danger: #f87171;
+  --danger-soft: #2c1214;
+  --danger-solid: #dc2626; /* white text 4.8:1 */
+
+  --chart-series: #0ea572;
+  --chart-other: #5b6a64;
+  --chart-grid: #1c2723;
+  --chart-axis: #34433d;
+  --chart-hover: #16201c;
+}
+
+/* Expose the tokens as Tailwind colours: bg-card, text-muted-foreground, ... */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-solid: var(--danger-solid);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  /* Keep scrolled-to and keyboard-focused elements clear of the sticky
+     4rem header (WCAG 2.4.11 Focus Not Obscured). */
+  html {
+    scroll-padding-top: 5rem;
+  }
+
+  /* Borders default to the border token instead of currentColor. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  /* One consistent keyboard-focus style everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
