@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { Alert, Button, FormField, Input } from '@/components/ui';
+import { Alert, Button, FormField, Input, PasswordInput } from '@/components/ui';
 import { ApiError, toFormErrors, type FieldErrors } from '@/lib/api';
 import { validateRegister, type RegisterFormValues } from '@/lib/validation';
 import { useAuth } from './auth-provider';
@@ -59,6 +59,7 @@ export function RegisterForm() {
           id="name"
           name="name"
           autoComplete="name"
+          placeholder="e.g. Priya Sharma"
           value={values.name}
           onChange={handleChange}
           invalid={!!errors.name}
@@ -74,6 +75,7 @@ export function RegisterForm() {
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="you@example.com"
           value={values.email}
           onChange={handleChange}
           invalid={!!errors.email}
@@ -88,11 +90,11 @@ export function RegisterForm() {
         error={errors.password}
         hint="At least 8 characters"
       >
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
+          placeholder="Create a password"
           value={values.password}
           onChange={handleChange}
           invalid={!!errors.password}
@@ -102,11 +104,11 @@ export function RegisterForm() {
       </FormField>
 
       <FormField label="Confirm password" htmlFor="confirmPassword" error={errors.confirmPassword}>
-        <Input
+        <PasswordInput
           id="confirmPassword"
           name="confirmPassword"
-          type="password"
           autoComplete="new-password"
+          placeholder="Re-enter your password"
           value={values.confirmPassword}
           onChange={handleChange}
           invalid={!!errors.confirmPassword}

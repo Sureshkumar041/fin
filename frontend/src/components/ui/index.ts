@@ -15,6 +15,7 @@ export { Notice } from './notice';
 export { PageHeader } from './page-header';
 export { Pagination } from './pagination';
 export { Panel } from './panel';
+export { PasswordInput } from './password-input';
 export { Select } from './select';
 export { Skeleton } from './skeleton';
 export { Spinner } from './spinner';

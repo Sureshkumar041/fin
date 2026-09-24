@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { Alert, Button, FormField, Input } from '@/components/ui';
+import { Alert, Button, FormField, Input, PasswordInput } from '@/components/ui';
 import { toFormErrors, type FieldErrors } from '@/lib/api';
 import { validateLogin } from '@/lib/validation';
 import type { LoginInput } from '@/types';
@@ -51,6 +51,7 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="you@example.com"
           value={values.email}
           onChange={handleChange}
           invalid={!!errors.email}
@@ -60,11 +61,11 @@ export function LoginForm() {
       </FormField>
 
       <FormField label="Password" htmlFor="password" error={errors.password}>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
+          placeholder="Enter your password"
           value={values.password}
           onChange={handleChange}
           invalid={!!errors.password}
