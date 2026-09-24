@@ -23,6 +23,7 @@ import {
   LoadingState,
   PageHeader,
   Panel,
+  PasswordInput,
   Select,
   Skeleton,
   Table,
@@ -126,6 +127,9 @@ export function DesignSystemShowcase() {
             </FormField>
             <FormField label="Disabled" htmlFor="ds-disabled">
               <Input id="ds-disabled" disabled defaultValue="Read only" />
+            </FormField>
+            <FormField label="Password" htmlFor="ds-password" hint="Show/hide button inside the input">
+              <PasswordInput id="ds-password" placeholder="Enter your password" autoComplete="off" />
             </FormField>
           </Card>
         </Section>
