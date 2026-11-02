@@ -23,6 +23,23 @@ export const expenseParticipantRepository = {
       .getMany();
   },
 
+  // One contact's participant rows on the user's split expenses (with each
+  // expense and its category), in a single query, newest expense first.
+  // Scoped to the user through both the expense and the contact. Served by
+  // idx_expense_participants_contact_status.
+  findForContact(contactId: string, userId: string): Promise<ExpenseParticipant[]> {
+    return repo()
+      .createQueryBuilder('participant')
+      .innerJoinAndSelect('participant.expense', 'expense', 'expense.userId = :userId', { userId })
+      .innerJoinAndSelect('expense.category', 'category')
+      .innerJoin('participant.contact', 'contact', 'contact.userId = :userId')
+      .where('participant.contactId = :contactId', { contactId })
+      .orderBy('expense.expenseDate', 'DESC')
+      .addOrderBy('expense.createdAt', 'DESC')
+      .addOrderBy('expense.id', 'DESC')
+      .getMany();
+  },
+
   // Writes new share amounts onto existing rows (id, contact, status and
   // settledAt are kept). One UPDATE per participant, at most 20.
   async updateShares(

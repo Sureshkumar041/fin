@@ -18,6 +18,7 @@ import { useNotice } from '@/hooks/use-notice';
 import { contactsApi, toFormErrors } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import type { Contact } from '@/types';
+import { ContactDetails } from './contact-details';
 import { ContactForm } from './contact-form';
 import { ContactList } from './contact-list';
 
@@ -26,6 +27,7 @@ type FormState = { mode: 'create' } | { mode: 'edit'; contact: Contact } | null;
 export function ContactsView() {
   const list = useApi(() => contactsApi.list());
   const [form, setForm] = useState<FormState>(null);
+  const [viewing, setViewing] = useState<Contact | null>(null);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -114,6 +116,7 @@ export function ContactsView() {
           <div className={list.refreshing ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
             <ContactList
               contacts={contacts}
+              onView={setViewing}
               onEdit={(contact) => setForm({ mode: 'edit', contact })}
               onDelete={(contact) => {
                 setDeleteError(null);
@@ -133,6 +136,15 @@ export function ContactsView() {
             onCancel={() => setForm(null)}
           />
         )}
+      </Dialog>
+
+      <Dialog
+        open={viewing !== null}
+        onClose={() => setViewing(null)}
+        title={viewing ? viewing.name : 'Contact details'}
+        description="Split expenses with this contact, newest first."
+      >
+        {viewing && <ContactDetails contact={viewing} onClose={() => setViewing(null)} />}
       </Dialog>
 
       {deleteBlocked && toDelete ? (

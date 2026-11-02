@@ -12,6 +12,8 @@ router.use(requireAuth);
 
 router.post('/', validateBody(createContactSchema), contactController.create);
 router.get('/', contactController.list);
+// The contact's split expenses with their share of each, plus totals.
+router.get('/:id/expenses', validateParams(idParamSchema), contactController.listExpenses);
 router.patch(
   '/:id',
   validateParams(idParamSchema),

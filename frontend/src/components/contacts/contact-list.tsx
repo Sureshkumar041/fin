@@ -5,11 +5,12 @@ import type { Contact } from '@/types';
 type ContactListProps = {
   /** In the order the API returned them (by name). */
   contacts: Contact[];
+  onView: (contact: Contact) => void;
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
 };
 
-export function ContactList({ contacts, onEdit, onDelete }: ContactListProps) {
+export function ContactList({ contacts, onView, onEdit, onDelete }: ContactListProps) {
   return (
     <ul className="divide-y divide-border">
       {contacts.map((c) => (
@@ -28,6 +29,9 @@ export function ContactList({ contacts, onEdit, onDelete }: ContactListProps) {
             </p>
           </div>
           <div className="-mr-3 flex shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => onView(c)} aria-label={`View details for ${c.name}`}>
+              View
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => onEdit(c)} aria-label={`Edit ${c.name}`}>
               Edit
             </Button>

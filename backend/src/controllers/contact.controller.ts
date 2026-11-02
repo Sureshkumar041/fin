@@ -10,6 +10,10 @@ export const contactController = {
     res.json({ contacts });
   },
 
+  async listExpenses(req: Request<{ id: string }>, res: Response) {
+    res.json(await contactService.listExpenses(req.params.id, req.user!.id));
+  },
+
   async create(req: Request, res: Response) {
     const contact = await contactService.create(req.body as CreateContactInput, req.user!.id);
     res.status(201).json({ contact });
