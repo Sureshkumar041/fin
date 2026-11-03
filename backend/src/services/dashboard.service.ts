@@ -1,19 +1,11 @@
 import { dashboardRepository } from '../repositories/dashboard.repository';
-import { fromPaise, toPaise } from '../utils/money';
+import { sumMoney, toMoney } from '../utils/money';
 import { addMonths, currentMonth, firstDay } from '../utils/month';
 import type {
   CategoriesQuery,
   MonthlyQuery,
   SummaryQuery,
 } from '../validators/dashboard.validator';
-
-// Money sums arrive as strings like "1234.50". Round to cents to clear any
-// floating-point noise after conversion.
-const toMoney = (value: string | number) => Math.round(Number(value) * 100) / 100;
-
-// Adds money values in integer paise, not floating-point rupees.
-const sumMoney = (values: (string | number)[]) =>
-  fromPaise(values.reduce<number>((sum, v) => sum + toPaise(Number(v)), 0));
 
 // Split expenses: totalExpense is the user's own spending (their share),
 // totalPaid the full amounts they paid. For personal expenses both are the

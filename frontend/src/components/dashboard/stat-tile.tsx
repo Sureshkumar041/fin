@@ -20,7 +20,7 @@ export function StatTile({ label, value, footnote, loading }: StatTileProps) {
         </>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{value}</p>
+          <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-2xl xl:text-3xl">{value}</p>
           {footnote && <div className="mt-1 text-sm text-muted-foreground">{footnote}</div>}
         </>
       )}

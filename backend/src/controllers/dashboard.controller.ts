@@ -1,7 +1,9 @@
 import type { Request, Response } from 'express';
 import { dashboardService } from '../services/dashboard.service';
+import { insightsService } from '../services/insights.service';
 import type {
   CategoriesQuery,
+  InsightsQuery,
   MonthlyQuery,
   SummaryQuery,
 } from '../validators/dashboard.validator';
@@ -31,5 +33,13 @@ export const dashboardController = {
       req.query as unknown as CategoriesQuery,
     );
     res.json(result);
+  },
+
+  async insights(req: Request, res: Response) {
+    const insights = await insightsService.getInsights(
+      req.user!.id,
+      req.query as unknown as InsightsQuery,
+    );
+    res.json(insights);
   },
 };

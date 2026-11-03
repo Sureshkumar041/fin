@@ -5,3 +5,4 @@ export * from './expense';
 export * from './split';
 export * from './contact';
 export * from './dashboard';
+export * from './insights';

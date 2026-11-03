@@ -22,6 +22,7 @@ export type SummaryRow = {
   settled: string;
 };
 export type MonthlyRow = { month: string; total: string; paid: string; count: string };
+export type DailyRow = { day: string; total: string; paid: string; count: string };
 export type CategoryRow = { id: string; name: string; total: string; paid: string; count: string };
 
 const expenses = () => AppDataSource.getRepository(Expense);
@@ -81,6 +82,24 @@ export const dashboardRepository = {
       .groupBy('month')
       .orderBy('month', 'ASC')
       .getRawMany<MonthlyRow>();
+  },
+
+  // Same totals per expense date. Days with no expenses have no row here; the
+  // service fills them with 0.
+  getDailyTotals(userId: string, from: string, toExclusive: string) {
+    return expenses()
+      .createQueryBuilder('e')
+      .leftJoin(PARTICIPANT_TOTALS, 'ps', 'ps.expense_id = e.id')
+      .select("TO_CHAR(e.expenseDate, 'YYYY-MM-DD')", 'day')
+      .addSelect(`SUM(${OWN_SHARE})`, 'total')
+      .addSelect('SUM(e.amount)', 'paid')
+      .addSelect('COUNT(*)', 'count')
+      .where('e.userId = :userId', { userId })
+      .andWhere('e.expenseDate >= :from', { from })
+      .andWhere('e.expenseDate < :toExclusive', { toExclusive })
+      .groupBy('day')
+      .orderBy('day', 'ASC')
+      .getRawMany<DailyRow>();
   },
 
   // Starts from the user's categories and LEFT JOINs expenses, so categories

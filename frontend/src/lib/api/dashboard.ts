@@ -1,11 +1,12 @@
 import type {
   CategoryTotalsResponse,
+  DashboardInsightsResponse,
   DashboardSummary,
   IsoDate,
   MonthlyTotalsResponse,
   YearMonth,
 } from '@/types';
-import { currentYearMonth } from '@/lib/format';
+import { currentYearMonth, todayIso } from '@/lib/format';
 import { apiRequest } from './client';
 
 // The browser's local month is sent as "current", so totals follow the
@@ -23,4 +24,13 @@ export const dashboardApi = {
 
   categories: (range: { from?: IsoDate; to?: IsoDate } = {}) =>
     apiRequest<CategoryTotalsResponse>('/dashboard/categories', { query: range }),
+
+  // `date` is the user's today: the backend compares a month in progress with
+  // the same days of the previous month. `month` defaults to date's month.
+  insights: (options: { month?: YearMonth; date?: IsoDate } = {}) => {
+    const date = options.date ?? todayIso();
+    return apiRequest<DashboardInsightsResponse>('/dashboard/insights', {
+      query: { month: options.month ?? date.slice(0, 7), date },
+    });
+  },
 };

@@ -2205,7 +2205,7 @@
     },
     {
       "name": "Dashboard",
-      "description": "Aggregated totals for the logged-in user, computed in PostgreSQL. Requires login.",
+      "description": "Aggregated totals for the logged-in user, computed in PostgreSQL. Requires login. Insights compares a month with the previous one and adds trends and rule-based observations.",
       "item": [
         {
           "name": "Summary",
@@ -2463,6 +2463,391 @@
               ],
               "cookie": [],
               "body": "{\n  \"from\": \"2026-09-01\",\n  \"to\": \"2026-09-23\",\n  \"totalExpense\": 15.75,\n  \"categories\": [\n    {\n      \"id\": \"8942d501-a904-4daf-8434-3c45d34991b6\",\n      \"name\": \"Groceries 1790162691\",\n      \"totalExpense\": 15.75,\n      \"expenseCount\": 1,\n      \"percentage\": 100\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Insights",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Is for the current month and today', () => {",
+                  "  pm.expect(body.month).to.eql(pm.collectionVariables.get('currentMonth'));",
+                  "  pm.expect(body.date).to.eql(pm.collectionVariables.get('today'));",
+                  "  pm.expect(body).to.include.keys('overview', 'samePeriod', 'categories', 'trends', 'observations');",
+                  "});",
+                  "pm.test('Same-period comparison runs from the 1st to today', () => {",
+                  "  pm.expect(body.samePeriod.current.from).to.eql(pm.collectionVariables.get('monthStart'));",
+                  "  pm.expect(body.samePeriod.current.to).to.eql(pm.collectionVariables.get('today'));",
+                  "});",
+                  "pm.test(\"Others' share is total paid minus your spending\", () => {",
+                  "  const paise = (n) => Math.round(n * 100);",
+                  "  [body.overview.current, body.overview.previous, body.samePeriod.current].forEach((t) => {",
+                  "    pm.expect(paise(t.othersShare)).to.eql(paise(t.totalPaid) - paise(t.totalExpense));",
+                  "  });",
+                  "});",
+                  "pm.test('Trends cover every day, 12 weeks, 7 weekdays and 12 months', () => {",
+                  "  const [y, m] = body.month.split('-').map(Number);",
+                  "  pm.expect(body.trends.daily).to.have.lengthOf(new Date(y, m, 0).getDate());",
+                  "  pm.expect(body.trends.weekly.weeks).to.have.lengthOf(12);",
+                  "  pm.expect(body.trends.weekly.weekdays.map((d) => d.weekday)).to.eql([1, 2, 3, 4, 5, 6, 7]);",
+                  "  pm.expect(body.trends.monthly.months).to.have.lengthOf(12);",
+                  "});",
+                  "pm.test('Observations have a code, tone, message and data', () => {",
+                  "  body.observations.forEach((o) => {",
+                  "    pm.expect(o.code).to.be.a('string');",
+                  "    pm.expect(['positive', 'negative', 'neutral']).to.include(o.tone);",
+                  "    pm.expect(o.message).to.be.a('string');",
+                  "    pm.expect(o.data).to.be.an('object');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/insights?month={{currentMonth}}&date={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "insights"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "{{currentMonth}}",
+                  "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                },
+                {
+                  "key": "date",
+                  "value": "{{today}}",
+                  "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                }
+              ]
+            },
+            "description": "Financial insights for one month: `overview` (whole month vs whole previous month), `samePeriod` (the days so far vs the same days of the previous month), `categories`, `trends` (every day of the month, the last 12 whole Monday-Sunday weeks, 12 months of history) and rule-based `observations`.\n\nSend the user's local `date` so a month in progress is compared fairly. `totalExpense` is your own spending, `totalPaid` the full amounts you paid, and `othersShare` = `totalPaid - totalExpense`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/insights?month={{currentMonth}}&date={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "insights"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "{{currentMonth}}",
+                      "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                    },
+                    {
+                      "key": "date",
+                      "value": "{{today}}",
+                      "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"month\": \"2026-09\",\n  \"previousMonth\": \"2026-08\",\n  \"date\": \"2026-09-24\",\n  \"monthComplete\": false,\n  \"overview\": {\n    \"current\": {\n      \"month\": \"2026-09\",\n      \"totalExpense\": 614.5,\n      \"totalPaid\": 818,\n      \"othersShare\": 203.5,\n      \"expenseCount\": 4\n    },\n    \"previous\": {\n      \"month\": \"2026-08\",\n      \"totalExpense\": 350,\n      \"totalPaid\": 350,\n      \"othersShare\": 0,\n      \"expenseCount\": 1\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 264.5,\n        \"percentage\": 75.57\n      },\n      \"totalPaid\": {\n        \"amount\": 468,\n        \"percentage\": 133.71\n      },\n      \"othersShare\": {\n        \"amount\": 203.5,\n        \"percentage\": null\n      }\n    }\n  },\n  \"samePeriod\": {\n    \"current\": {\n      \"from\": \"2026-09-01\",\n      \"to\": \"2026-09-24\",\n      \"totalExpense\": 614.5,\n      \"totalPaid\": 818,\n      \"othersShare\": 203.5,\n      \"expenseCount\": 4\n    },\n    \"previous\": {\n      \"from\": \"2026-08-01\",\n      \"to\": \"2026-08-24\",\n      \"totalExpense\": 350,\n      \"totalPaid\": 350,\n      \"othersShare\": 0,\n      \"expenseCount\": 1\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 264.5,\n        \"percentage\": 75.57\n      },\n      \"totalPaid\": {\n        \"amount\": 468,\n        \"percentage\": 133.71\n      },\n      \"othersShare\": {\n        \"amount\": 203.5,\n        \"percentage\": null\n      }\n    }\n  },\n  \"categories\": {\n    \"highest\": {\n      \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n      \"name\": \"Travel\",\n      \"totalExpense\": 350,\n      \"percentage\": 56.96\n    },\n    \"top\": [\n      {\n        \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"name\": \"Travel\",\n        \"totalExpense\": 350,\n        \"percentage\": 56.96\n      },\n      {\n        \"id\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"name\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"percentage\": 43.04\n      }\n    ],\n    \"items\": [\n      {\n        \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"name\": \"Travel\",\n        \"totalExpense\": 350,\n        \"expenseCount\": 1,\n        \"totalPaid\": 350,\n        \"percentage\": 56.96,\n        \"fullMonth\": {\n          \"previousTotalExpense\": 350,\n          \"change\": {\n            \"amount\": 0,\n            \"percentage\": 0\n          }\n        },\n        \"samePeriod\": {\n          \"totalExpense\": 350,\n          \"previousTotalExpense\": 350,\n          \"change\": {\n            \"amount\": 0,\n            \"percentage\": 0\n          }\n        }\n      },\n      {\n        \"id\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"name\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"expenseCount\": 3,\n        \"totalPaid\": 468,\n        \"percentage\": 43.04,\n        \"fullMonth\": {\n          \"previousTotalExpense\": 0,\n          \"change\": {\n            \"amount\": 264.5,\n            \"percentage\": null\n          }\n        },\n        \"samePeriod\": {\n          \"totalExpense\": 264.5,\n          \"previousTotalExpense\": 0,\n          \"change\": {\n            \"amount\": 264.5,\n            \"percentage\": null\n          }\n        }\n      }\n    ]\n  },\n  \"trends\": {\n    \"daily\": [\n      {\n        \"date\": \"2026-09-01\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      },\n      {\n        \"date\": \"2026-09-14\",\n        \"totalExpense\": 350,\n        \"totalPaid\": 350,\n        \"othersShare\": 0,\n        \"expenseCount\": 1\n      },\n      {\n        \"date\": \"2026-09-23\",\n        \"totalExpense\": 221.5,\n        \"totalPaid\": 253,\n        \"othersShare\": 31.5,\n        \"expenseCount\": 2\n      },\n      {\n        \"date\": \"2026-09-24\",\n        \"totalExpense\": 43,\n        \"totalPaid\": 215,\n        \"othersShare\": 172,\n        \"expenseCount\": 1\n      },\n      {\n        \"date\": \"2026-09-30\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      }\n    ],\n    \"weekly\": {\n      \"from\": \"2026-06-29\",\n      \"to\": \"2026-09-20\",\n      \"weeks\": [\n        {\n          \"weekStart\": \"2026-06-29\",\n          \"weekEnd\": \"2026-07-05\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-06\",\n          \"weekEnd\": \"2026-07-12\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-13\",\n          \"weekEnd\": \"2026-07-19\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-20\",\n          \"weekEnd\": \"2026-07-26\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-27\",\n          \"weekEnd\": \"2026-08-02\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-03\",\n          \"weekEnd\": \"2026-08-09\",\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1\n        },\n        {\n          \"weekStart\": \"2026-08-10\",\n          \"weekEnd\": \"2026-08-16\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-17\",\n          \"weekEnd\": \"2026-08-23\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-24\",\n          \"weekEnd\": \"2026-08-30\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-31\",\n          \"weekEnd\": \"2026-09-06\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-07\",\n          \"weekEnd\": \"2026-09-13\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-14\",\n          \"weekEnd\": \"2026-09-20\",\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1\n        }\n      ],\n      \"weekdays\": [\n        {\n          \"weekday\": 1,\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1,\n          \"averageExpense\": 29.17\n        },\n        {\n          \"weekday\": 2,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 3,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 4,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 5,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 6,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 7,\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1,\n          \"averageExpense\": 29.17\n        }\n      ]\n    },\n    \"monthly\": {\n      \"from\": \"2025-10\",\n      \"to\": \"2026-09\",\n      \"months\": [\n        {\n          \"month\": \"2026-08\",\n          \"totalExpense\": 350,\n          \"expenseCount\": 1,\n          \"totalPaid\": 350,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-09\",\n          \"totalExpense\": 614.5,\n          \"expenseCount\": 4,\n          \"totalPaid\": 818,\n          \"othersShare\": 203.5\n        }\n      ]\n    }\n  },\n  \"observations\": [\n    {\n      \"code\": \"SPENDING_INCREASED\",\n      \"tone\": \"negative\",\n      \"message\": \"You've spent 76% more than at this point in August.\",\n      \"data\": {\n        \"comparison\": \"samePeriod\",\n        \"percentage\": 75.57,\n        \"amount\": 264.5,\n        \"currentTotalExpense\": 614.5,\n        \"previousTotalExpense\": 350,\n        \"previousFrom\": \"2026-08-01\",\n        \"previousTo\": \"2026-08-24\"\n      }\n    },\n    {\n      \"code\": \"TOP_CATEGORY\",\n      \"tone\": \"neutral\",\n      \"message\": \"Travel is your top category this month, at 57% of your spending.\",\n      \"data\": {\n        \"categoryId\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"categoryName\": \"Travel\",\n        \"totalExpense\": 350,\n        \"percentage\": 56.96\n      }\n    },\n    {\n      \"code\": \"CATEGORY_NEW\",\n      \"tone\": \"neutral\",\n      \"message\": \"Groceries is new this month: you didn't spend on it in August.\",\n      \"data\": {\n        \"categoryId\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"categoryName\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"newCategoryCount\": 1\n      }\n    },\n    {\n      \"code\": \"OTHERS_SHARE\",\n      \"tone\": \"neutral\",\n      \"message\": \"25% of what you've paid this month covered other people's shares.\",\n      \"data\": {\n        \"percentage\": 24.88,\n        \"othersShare\": 203.5,\n        \"totalPaid\": 818\n      }\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 Empty month",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/insights?month={{currentMonth}}&date={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "insights"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "{{currentMonth}}",
+                      "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                    },
+                    {
+                      "key": "date",
+                      "value": "{{today}}",
+                      "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"month\": \"2026-11\",\n  \"previousMonth\": \"2026-10\",\n  \"date\": \"2026-11-03\",\n  \"monthComplete\": false,\n  \"overview\": {\n    \"current\": {\n      \"month\": \"2026-11\",\n      \"totalExpense\": 0,\n      \"totalPaid\": 0,\n      \"othersShare\": 0,\n      \"expenseCount\": 0\n    },\n    \"previous\": {\n      \"month\": \"2026-10\",\n      \"totalExpense\": 0,\n      \"totalPaid\": 0,\n      \"othersShare\": 0,\n      \"expenseCount\": 0\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 0,\n        \"percentage\": null\n      },\n      \"totalPaid\": {\n        \"amount\": 0,\n        \"percentage\": null\n      },\n      \"othersShare\": {\n        \"amount\": 0,\n        \"percentage\": null\n      }\n    }\n  },\n  \"samePeriod\": {\n    \"current\": {\n      \"from\": \"2026-11-01\",\n      \"to\": \"2026-11-03\",\n      \"totalExpense\": 0,\n      \"totalPaid\": 0,\n      \"othersShare\": 0,\n      \"expenseCount\": 0\n    },\n    \"previous\": {\n      \"from\": \"2026-10-01\",\n      \"to\": \"2026-10-03\",\n      \"totalExpense\": 0,\n      \"totalPaid\": 0,\n      \"othersShare\": 0,\n      \"expenseCount\": 0\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 0,\n        \"percentage\": null\n      },\n      \"totalPaid\": {\n        \"amount\": 0,\n        \"percentage\": null\n      },\n      \"othersShare\": {\n        \"amount\": 0,\n        \"percentage\": null\n      }\n    }\n  },\n  \"categories\": {\n    \"highest\": null,\n    \"top\": [],\n    \"items\": []\n  },\n  \"trends\": {\n    \"daily\": [\n      {\n        \"date\": \"2026-11-01\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      },\n      {\n        \"date\": \"2026-11-30\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      }\n    ],\n    \"weekly\": {\n      \"from\": \"2026-08-10\",\n      \"to\": \"2026-11-01\",\n      \"weeks\": [\n        {\n          \"weekStart\": \"2026-08-10\",\n          \"weekEnd\": \"2026-08-16\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-17\",\n          \"weekEnd\": \"2026-08-23\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-24\",\n          \"weekEnd\": \"2026-08-30\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-31\",\n          \"weekEnd\": \"2026-09-06\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-07\",\n          \"weekEnd\": \"2026-09-13\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-14\",\n          \"weekEnd\": \"2026-09-20\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-21\",\n          \"weekEnd\": \"2026-09-27\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-28\",\n          \"weekEnd\": \"2026-10-04\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-10-05\",\n          \"weekEnd\": \"2026-10-11\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-10-12\",\n          \"weekEnd\": \"2026-10-18\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-10-19\",\n          \"weekEnd\": \"2026-10-25\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-10-26\",\n          \"weekEnd\": \"2026-11-01\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        }\n      ],\n      \"weekdays\": [\n        {\n          \"weekday\": 1,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 2,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 3,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 4,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 5,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 6,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 7,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        }\n      ]\n    },\n    \"monthly\": {\n      \"from\": \"2025-12\",\n      \"to\": \"2026-11\",\n      \"months\": [\n        {\n          \"month\": \"2026-10\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-11\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        }\n      ]\n    }\n  },\n  \"observations\": [\n    {\n      \"code\": \"NO_SPENDING\",\n      \"tone\": \"neutral\",\n      \"message\": \"You haven't spent anything this month up to 3 November.\",\n      \"data\": {\n        \"from\": \"2026-11-01\",\n        \"to\": \"2026-11-03\",\n        \"totalPaid\": 0\n      }\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Invalid query",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/insights?month={{currentMonth}}&date={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "insights"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "{{currentMonth}}",
+                      "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                    },
+                    {
+                      "key": "date",
+                      "value": "{{today}}",
+                      "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Invalid query parameters\",\n  \"details\": {\n    \"date\": [\n      \"\\\"date\\\" must not be before \\\"month\\\"\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Insights (previous month)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// The month before the current one, as YYYY-MM.",
+                  "const now = new Date();",
+                  "const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);",
+                  "pm.variables.set('previousMonth', `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Last month is complete', () => {",
+                  "  pm.expect(body.month).to.eql(pm.variables.get('previousMonth'));",
+                  "  pm.expect(body.monthComplete).to.eql(true);",
+                  "});",
+                  "pm.test('Both comparisons cover whole months', () => {",
+                  "  pm.expect(body.samePeriod.change).to.eql(body.overview.change);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/insights?month={{previousMonth}}&date={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "insights"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "{{previousMonth}}",
+                  "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                },
+                {
+                  "key": "date",
+                  "value": "{{today}}",
+                  "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                }
+              ]
+            },
+            "description": "Insights for last month. A month before `date`'s month is complete (`monthComplete: true`), so `samePeriod` covers whole months and equals `overview`. `{{previousMonth}}` is set by this request's pre-request script."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/insights?month={{previousMonth}}&date={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "insights"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "{{previousMonth}}",
+                      "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                    },
+                    {
+                      "key": "date",
+                      "value": "{{today}}",
+                      "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"month\": \"2026-09\",\n  \"previousMonth\": \"2026-08\",\n  \"date\": \"2026-11-03\",\n  \"monthComplete\": true,\n  \"overview\": {\n    \"current\": {\n      \"month\": \"2026-09\",\n      \"totalExpense\": 614.5,\n      \"totalPaid\": 818,\n      \"othersShare\": 203.5,\n      \"expenseCount\": 4\n    },\n    \"previous\": {\n      \"month\": \"2026-08\",\n      \"totalExpense\": 350,\n      \"totalPaid\": 350,\n      \"othersShare\": 0,\n      \"expenseCount\": 1\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 264.5,\n        \"percentage\": 75.57\n      },\n      \"totalPaid\": {\n        \"amount\": 468,\n        \"percentage\": 133.71\n      },\n      \"othersShare\": {\n        \"amount\": 203.5,\n        \"percentage\": null\n      }\n    }\n  },\n  \"samePeriod\": {\n    \"current\": {\n      \"from\": \"2026-09-01\",\n      \"to\": \"2026-09-30\",\n      \"totalExpense\": 614.5,\n      \"totalPaid\": 818,\n      \"othersShare\": 203.5,\n      \"expenseCount\": 4\n    },\n    \"previous\": {\n      \"from\": \"2026-08-01\",\n      \"to\": \"2026-08-31\",\n      \"totalExpense\": 350,\n      \"totalPaid\": 350,\n      \"othersShare\": 0,\n      \"expenseCount\": 1\n    },\n    \"change\": {\n      \"totalExpense\": {\n        \"amount\": 264.5,\n        \"percentage\": 75.57\n      },\n      \"totalPaid\": {\n        \"amount\": 468,\n        \"percentage\": 133.71\n      },\n      \"othersShare\": {\n        \"amount\": 203.5,\n        \"percentage\": null\n      }\n    }\n  },\n  \"categories\": {\n    \"highest\": {\n      \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n      \"name\": \"Travel\",\n      \"totalExpense\": 350,\n      \"percentage\": 56.96\n    },\n    \"top\": [\n      {\n        \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"name\": \"Travel\",\n        \"totalExpense\": 350,\n        \"percentage\": 56.96\n      },\n      {\n        \"id\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"name\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"percentage\": 43.04\n      }\n    ],\n    \"items\": [\n      {\n        \"id\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"name\": \"Travel\",\n        \"totalExpense\": 350,\n        \"expenseCount\": 1,\n        \"totalPaid\": 350,\n        \"percentage\": 56.96,\n        \"fullMonth\": {\n          \"previousTotalExpense\": 350,\n          \"change\": {\n            \"amount\": 0,\n            \"percentage\": 0\n          }\n        },\n        \"samePeriod\": {\n          \"totalExpense\": 350,\n          \"previousTotalExpense\": 350,\n          \"change\": {\n            \"amount\": 0,\n            \"percentage\": 0\n          }\n        }\n      },\n      {\n        \"id\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"name\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"expenseCount\": 3,\n        \"totalPaid\": 468,\n        \"percentage\": 43.04,\n        \"fullMonth\": {\n          \"previousTotalExpense\": 0,\n          \"change\": {\n            \"amount\": 264.5,\n            \"percentage\": null\n          }\n        },\n        \"samePeriod\": {\n          \"totalExpense\": 264.5,\n          \"previousTotalExpense\": 0,\n          \"change\": {\n            \"amount\": 264.5,\n            \"percentage\": null\n          }\n        }\n      }\n    ]\n  },\n  \"trends\": {\n    \"daily\": [\n      {\n        \"date\": \"2026-09-01\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      },\n      {\n        \"date\": \"2026-09-14\",\n        \"totalExpense\": 350,\n        \"totalPaid\": 350,\n        \"othersShare\": 0,\n        \"expenseCount\": 1\n      },\n      {\n        \"date\": \"2026-09-23\",\n        \"totalExpense\": 221.5,\n        \"totalPaid\": 253,\n        \"othersShare\": 31.5,\n        \"expenseCount\": 2\n      },\n      {\n        \"date\": \"2026-09-24\",\n        \"totalExpense\": 43,\n        \"totalPaid\": 215,\n        \"othersShare\": 172,\n        \"expenseCount\": 1\n      },\n      {\n        \"date\": \"2026-09-30\",\n        \"totalExpense\": 0,\n        \"totalPaid\": 0,\n        \"othersShare\": 0,\n        \"expenseCount\": 0\n      }\n    ],\n    \"weekly\": {\n      \"from\": \"2026-07-06\",\n      \"to\": \"2026-09-27\",\n      \"weeks\": [\n        {\n          \"weekStart\": \"2026-07-06\",\n          \"weekEnd\": \"2026-07-12\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-13\",\n          \"weekEnd\": \"2026-07-19\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-20\",\n          \"weekEnd\": \"2026-07-26\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-07-27\",\n          \"weekEnd\": \"2026-08-02\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-03\",\n          \"weekEnd\": \"2026-08-09\",\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1\n        },\n        {\n          \"weekStart\": \"2026-08-10\",\n          \"weekEnd\": \"2026-08-16\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-17\",\n          \"weekEnd\": \"2026-08-23\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-24\",\n          \"weekEnd\": \"2026-08-30\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-08-31\",\n          \"weekEnd\": \"2026-09-06\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-07\",\n          \"weekEnd\": \"2026-09-13\",\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0\n        },\n        {\n          \"weekStart\": \"2026-09-14\",\n          \"weekEnd\": \"2026-09-20\",\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1\n        },\n        {\n          \"weekStart\": \"2026-09-21\",\n          \"weekEnd\": \"2026-09-27\",\n          \"totalExpense\": 264.5,\n          \"totalPaid\": 468,\n          \"othersShare\": 203.5,\n          \"expenseCount\": 3\n        }\n      ],\n      \"weekdays\": [\n        {\n          \"weekday\": 1,\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1,\n          \"averageExpense\": 29.17\n        },\n        {\n          \"weekday\": 2,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 3,\n          \"totalExpense\": 221.5,\n          \"totalPaid\": 253,\n          \"othersShare\": 31.5,\n          \"expenseCount\": 2,\n          \"averageExpense\": 18.46\n        },\n        {\n          \"weekday\": 4,\n          \"totalExpense\": 43,\n          \"totalPaid\": 215,\n          \"othersShare\": 172,\n          \"expenseCount\": 1,\n          \"averageExpense\": 3.58\n        },\n        {\n          \"weekday\": 5,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 6,\n          \"totalExpense\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0,\n          \"expenseCount\": 0,\n          \"averageExpense\": 0\n        },\n        {\n          \"weekday\": 7,\n          \"totalExpense\": 350,\n          \"totalPaid\": 350,\n          \"othersShare\": 0,\n          \"expenseCount\": 1,\n          \"averageExpense\": 29.17\n        }\n      ]\n    },\n    \"monthly\": {\n      \"from\": \"2025-10\",\n      \"to\": \"2026-09\",\n      \"months\": [\n        {\n          \"month\": \"2025-10\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2025-11\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2025-12\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-01\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-02\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-03\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-04\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-05\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-06\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-07\",\n          \"totalExpense\": 0,\n          \"expenseCount\": 0,\n          \"totalPaid\": 0,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-08\",\n          \"totalExpense\": 350,\n          \"expenseCount\": 1,\n          \"totalPaid\": 350,\n          \"othersShare\": 0\n        },\n        {\n          \"month\": \"2026-09\",\n          \"totalExpense\": 614.5,\n          \"expenseCount\": 4,\n          \"totalPaid\": 818,\n          \"othersShare\": 203.5\n        }\n      ]\n    }\n  },\n  \"observations\": [\n    {\n      \"code\": \"SPENDING_INCREASED\",\n      \"tone\": \"negative\",\n      \"message\": \"You spent 76% more in September than in August.\",\n      \"data\": {\n        \"comparison\": \"fullMonth\",\n        \"percentage\": 75.57,\n        \"amount\": 264.5,\n        \"currentTotalExpense\": 614.5,\n        \"previousTotalExpense\": 350,\n        \"previousFrom\": \"2026-08-01\",\n        \"previousTo\": \"2026-08-31\"\n      }\n    },\n    {\n      \"code\": \"TOP_CATEGORY\",\n      \"tone\": \"neutral\",\n      \"message\": \"Travel was your top category in September, at 57% of your spending.\",\n      \"data\": {\n        \"categoryId\": \"82897904-8aea-45ae-a7ae-7726709c2223\",\n        \"categoryName\": \"Travel\",\n        \"totalExpense\": 350,\n        \"percentage\": 56.96\n      }\n    },\n    {\n      \"code\": \"CATEGORY_NEW\",\n      \"tone\": \"neutral\",\n      \"message\": \"Groceries was new in September: you didn't spend on it in August.\",\n      \"data\": {\n        \"categoryId\": \"8a99c6fa-224d-4434-a4cd-711d42a4b27a\",\n        \"categoryName\": \"Groceries\",\n        \"totalExpense\": 264.5,\n        \"newCategoryCount\": 1\n      }\n    },\n    {\n      \"code\": \"OTHERS_SHARE\",\n      \"tone\": \"neutral\",\n      \"message\": \"25% of what you paid in September covered other people's shares.\",\n      \"data\": {\n        \"percentage\": 24.88,\n        \"othersShare\": 203.5,\n        \"totalPaid\": 818\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Insights (month after date)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Explains the date problem', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('BAD_REQUEST');",
+                  "  pm.expect(body.details.date).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/insights?month=2999-01&date={{today}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "insights"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2999-01",
+                  "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                },
+                {
+                  "key": "date",
+                  "value": "{{today}}",
+                  "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                }
+              ]
+            },
+            "description": "`month` must not be after `date`. Invalid formats (e.g. `date=2026-02-30`, `month=2026-13`) are rejected the same way."
+          },
+          "response": [
+            {
+              "name": "400 Invalid query",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/insights?month=2999-01&date={{today}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "insights"
+                  ],
+                  "query": [
+                    {
+                      "key": "month",
+                      "value": "2999-01",
+                      "description": "Optional. The month to look at (YYYY-MM). Defaults to the month of date"
+                    },
+                    {
+                      "key": "date",
+                      "value": "{{today}}",
+                      "description": "Optional. The user's today (YYYY-MM-DD), for the same-days comparison"
+                    }
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Invalid query parameters\",\n  \"details\": {\n    \"date\": [\n      \"\\\"date\\\" must not be before \\\"month\\\"\"\n    ]\n  }\n}"
             }
           ]
         }

@@ -54,3 +54,24 @@ export function formatMonth(month: YearMonth, style: 'short' | 'long' = 'short')
 
 /** First day of the current month in the user's timezone, as "YYYY-MM-01". */
 export const monthStartIso = (now = new Date()): IsoDate => `${currentYearMonth(now)}-01`;
+
+// Whole percent, rounded half away from zero like the backend's observation
+// messages, so a panel and a message about the same change show the same number.
+const percent = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+
+/** A percentage from the API, without its sign (shown by an arrow or words): 75.57 -> "76%". */
+export const formatPercent = (value: number) => `${percent.format(Math.abs(value))}%`;
+
+const dateRange = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const localDate = (date: IsoDate) => {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+/** Two "YYYY-MM-DD" dates as a local range: "1–3 Nov 2026", or "3 Nov 2026" for one day. */
+export const formatDateRange = (from: IsoDate, to: IsoDate) => dateRange.formatRange(localDate(from), localDate(to));
+
+const dayMonth = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
+
+/** "2026-09-07" -> "7 Sep", for chart axes. Built from the date's parts, so no timezone shift. */
+export const formatDayMonth = (date: IsoDate) => dayMonth.format(localDate(date));

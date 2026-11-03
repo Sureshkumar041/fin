@@ -50,6 +50,13 @@ export const UsersIcon = (p: IconProps) => (
     <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2A6.5 6.5 0 0 1 21.5 20" />
   </Icon>
 );
+export const InsightsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+    <path d="m7 15 4-4 3 3 6-6" />
+    <path d="M16 8h4v4" />
+  </Icon>
+);
 export const EyeIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />

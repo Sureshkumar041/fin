@@ -25,6 +25,21 @@ export const categoriesQuerySchema = z
     path: ['from'],
   });
 
+// "date" is the user's today, so a month in progress can be compared with the
+// same days of the previous month. Defaults to the server's date; "month"
+// defaults to date's month. A month before date's month is complete.
+export const insightsQuerySchema = z
+  .object({
+    month: yearMonth.optional(),
+    date: isoDate.optional(),
+  })
+  // "YYYY-MM-DD".slice(0, 7) is its "YYYY-MM"; both compare correctly as strings.
+  .refine((q) => !q.month || !q.date || q.date.slice(0, 7) >= q.month, {
+    message: '"date" must not be before "month"',
+    path: ['date'],
+  });
+
 export type SummaryQuery = z.infer<typeof summaryQuerySchema>;
 export type MonthlyQuery = z.infer<typeof monthlyQuerySchema>;
 export type CategoriesQuery = z.infer<typeof categoriesQuerySchema>;
+export type InsightsQuery = z.infer<typeof insightsQuerySchema>;

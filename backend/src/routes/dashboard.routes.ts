@@ -4,6 +4,7 @@ import { requireAuth } from '../middlewares/auth.middleware';
 import { validateQuery } from '../middlewares/validate.middleware';
 import {
   categoriesQuerySchema,
+  insightsQuerySchema,
   monthlyQuerySchema,
   summaryQuerySchema,
 } from '../validators/dashboard.validator';
@@ -16,5 +17,6 @@ router.use(requireAuth);
 router.get('/summary', validateQuery(summaryQuerySchema), dashboardController.summary);
 router.get('/monthly', validateQuery(monthlyQuerySchema), dashboardController.monthly);
 router.get('/categories', validateQuery(categoriesQuerySchema), dashboardController.categories);
+router.get('/insights', validateQuery(insightsQuerySchema), dashboardController.insights);
 
 export default router;

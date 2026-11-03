@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useElementWidth } from '@/hooks/use-element-width';
 import { niceTicks } from './nice-ticks';
 
@@ -30,6 +30,18 @@ type ColumnChartProps = {
   /** Names for `value` and `background` in the tooltip and screen-reader text. */
   valueLabel?: string;
   backgroundLabel?: string;
+  /**
+   * Minimum space between x-axis labels in px: every n-th column is labelled
+   * (always including the last). Without it: every column, or every other
+   * one when columns are narrower than 34px.
+   */
+  minLabelSpacing?: number;
+  /**
+   * Emphasise the last column (bold axis label, direct value label), for
+   * series where it is the latest. Turn off when the last column isn't
+   * special, e.g. a weekday or a day still to come.
+   */
+  highlightLast?: boolean;
 };
 
 const MARGIN = { top: 20, right: 8, bottom: 28 };
@@ -46,6 +58,9 @@ function columnPath(x: number, y: number, w: number, h: number): string {
  * Column chart in plain SVG: hairline grid, thin columns, a direct label on
  * the latest value, and a hover/focus tooltip per column. A datum's optional
  * `background` is drawn behind its column, lighter and dashed.
+ *
+ * Keyboard: the chart is one tab stop (roving tabindex). Left/right arrow
+ * keys move between columns, Home/End jump to the first/last one.
  */
 export function ColumnChart({
   data,
@@ -55,9 +70,17 @@ export function ColumnChart({
   ariaLabel,
   valueLabel,
   backgroundLabel,
+  minLabelSpacing,
+  highlightLast = true,
 }: ColumnChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [active, setActive] = useState<number | null>(null);
+  // The column that receives Tab, remembered by key: when the data changes and
+  // that column is gone, it falls back to the default (the latest column when
+  // it is highlighted, otherwise the first).
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const bars = useRef<(SVGRectElement | null)[]>([]);
+  const hintId = useId();
   const peak = (d: ColumnDatum) => Math.max(d.value, d.background ?? 0);
   const describe = (d: ColumnDatum) =>
     d.background !== undefined
@@ -73,15 +96,22 @@ export function ColumnChart({
   const band = data.length ? plotW / data.length : 0;
   const barW = Math.min(MAX_BAR_WIDTH, band * 0.6);
   const y = (v: number) => MARGIN.top + plotH - (v / top) * plotH;
-  // On narrow screens, label every other month, always keeping the latest.
-  const labelEvery = band < 34 ? 2 : 1;
+  // On narrow screens, label every other column (or as minLabelSpacing
+  // allows), always keeping the latest.
+  const labelEvery = minLabelSpacing ? Math.max(1, Math.ceil(minLabelSpacing / band)) : band < 34 ? 2 : 1;
   const last = data.length - 1;
+  const remembered = focusKey === null ? -1 : data.findIndex((d) => d.key === focusKey);
+  const tabStop = remembered >= 0 ? remembered : highlightLast ? last : 0;
+  const moveFocus = (to: number) => bars.current[Math.max(0, Math.min(last, to))]?.focus();
 
   const activeDatum = active !== null ? data[active] : null;
   const tooltipX = active !== null ? left + band * active + band / 2 : 0;
 
   return (
     <div ref={ref} className="relative w-full" style={{ height }}>
+      <span id={hintId} className="sr-only">
+        Use the left and right arrow keys to move between bars.
+      </span>
       {width > 0 && (
         <svg width={width} height={height} role="img" aria-label={ariaLabel} className="block">
           {/* gridlines + y ticks */}
@@ -133,11 +163,13 @@ export function ColumnChart({
                     opacity={active === i ? 0.8 : 1}
                   />
                 )}
-                {/* Direct label on the latest column only; the rest is in the tooltip and table. */}
-                {i === last && d.value > 0 && active === null && (
+                {/* Direct label on the latest column only, above the taller of its two
+                    columns so a total-paid column never runs through it; the rest is in
+                    the tooltip and table. */}
+                {highlightLast && i === last && d.value > 0 && active === null && (
                   <text
                     x={cx}
-                    y={y(d.value) - 6}
+                    y={y(peak(d)) - 6}
                     textAnchor="middle"
                     className="fill-foreground text-[11px] font-medium tabular-nums"
                   >
@@ -149,26 +181,43 @@ export function ColumnChart({
                     x={cx}
                     y={height - 8}
                     textAnchor="middle"
-                    className={i === last ? 'fill-foreground text-[11px] font-medium' : 'fill-muted-foreground text-[11px]'}
+                    className={
+                      highlightLast && i === last
+                        ? 'fill-foreground text-[11px] font-medium'
+                        : 'fill-muted-foreground text-[11px]'
+                    }
                   >
                     {d.label}
                   </text>
                 )}
                 {/* Hit target: the whole column band, bigger than the bar itself. */}
                 <rect
+                  ref={(el) => {
+                    bars.current[i] = el;
+                  }}
                   x={cx - band / 2}
                   y={MARGIN.top}
                   width={band}
                   height={plotH}
                   fill="transparent"
-                  tabIndex={0}
+                  tabIndex={i === tabStop ? 0 : -1}
                   role="img"
                   aria-label={`${d.longLabel}: ${describe(d)}${d.detail ? `, ${d.detail}` : ''}`}
+                  aria-describedby={hintId}
                   className="cursor-default outline-none focus-visible:stroke-ring"
                   onPointerEnter={() => setActive(i)}
                   onPointerLeave={() => setActive(null)}
-                  onFocus={() => setActive(i)}
+                  onFocus={() => {
+                    setActive(i);
+                    setFocusKey(d.key);
+                  }}
                   onBlur={() => setActive(null)}
+                  onKeyDown={(e) => {
+                    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: last }[e.key];
+                    if (to === undefined) return;
+                    e.preventDefault();
+                    moveFocus(to);
+                  }}
                 />
               </g>
             );

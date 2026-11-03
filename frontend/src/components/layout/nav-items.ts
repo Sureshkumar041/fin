@@ -1,8 +1,9 @@
-import { DashboardIcon, ReceiptIcon, TagIcon, UsersIcon } from '@/components/icons';
+import { DashboardIcon, InsightsIcon, ReceiptIcon, TagIcon, UsersIcon } from '@/components/icons';
 
 // The app's main sections. Add a line here to add a page to the sidebar.
 export const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
+  { href: '/insights', label: 'Insights', icon: InsightsIcon },
   { href: '/expenses', label: 'Expenses', icon: ReceiptIcon },
   { href: '/categories', label: 'Categories', icon: TagIcon },
   { href: '/contacts', label: 'Contacts', icon: UsersIcon },
