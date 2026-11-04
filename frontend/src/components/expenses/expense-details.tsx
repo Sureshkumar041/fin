@@ -2,12 +2,12 @@
 
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Badge, Button, Spinner } from '@/components/ui';
+import { Avatar, Button, CategoryIcon, Spinner } from '@/components/ui';
 import { expensesApi, toFormErrors } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatDate, formatMoney, formatTimestampDate } from '@/lib/format';
-import { SETTLEMENT_STATUS_LABELS, SPLIT_METHOD_LABELS } from '@/lib/split';
 import type { Expense, ExpenseParticipant, SettlementStatus } from '@/types';
+import { SettlementBadge, SplitMethodBadge } from './split-badges';
 
 type ExpenseDetailsProps = {
   expense: Expense;
@@ -45,12 +45,14 @@ export function ExpenseDetails({ expense, onUpdated, onEdit, onClose }: ExpenseD
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium break-words text-foreground">{expense.description ?? 'No description'}</p>
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Badge>{expense.category.name}</Badge>
-          {formatDate(expense.expenseDate)}
-        </p>
+      <div className="flex items-start gap-3">
+        <CategoryIcon category={expense.category} size="lg" />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p className="text-sm font-medium break-words text-foreground">{expense.description ?? 'No description'}</p>
+          <p className="text-sm text-muted-foreground">
+            {expense.category.name} · {formatDate(expense.expenseDate)}
+          </p>
+        </div>
       </div>
 
       <Section title="Expense">
@@ -67,7 +69,7 @@ export function ExpenseDetails({ expense, onUpdated, onEdit, onClose }: ExpenseD
       {split && (
         <>
           <Section title="Split">
-            <Row label="Method" value={SPLIT_METHOD_LABELS[split.method]} />
+            <Row label="Method" value={<SplitMethodBadge method={split.method} />} />
             <Row label="Others’ share" value={formatMoney(split.othersShare)} />
             <Row label="Owed to you" value={formatMoney(split.owedToYou)} />
             <Row label="Settled to you" value={formatMoney(split.settledToYou)} />
@@ -115,8 +117,9 @@ function ParticipantRow({ participant: p, settling, disabled, error, onSettle }:
   return (
     <li className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm text-foreground" title={name}>
+        <Avatar name={name} colorKey={p.contact.id} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground" title={name}>
             {name}
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">
@@ -126,7 +129,7 @@ function ParticipantRow({ participant: p, settling, disabled, error, onSettle }:
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <Badge variant={paid ? 'success' : 'warning'}>{SETTLEMENT_STATUS_LABELS[p.status]}</Badge>
+          <SettlementBadge status={p.status} />
           {/* While saving, the button stays focusable (aria-disabled, not disabled) so keyboard
               focus isn't lost; repeated presses are ignored by the in-flight guard. */}
           <Button
@@ -156,7 +159,7 @@ function ParticipantRow({ participant: p, settling, disabled, error, onSettle }:
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="border-b border-border pb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <h3 className="border-b border-border pb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {title}
       </h3>
       {children}
@@ -164,11 +167,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Row({ label, value, strong }: { label: string; value: ReactNode; strong?: boolean }) {
   return (
-    <div className="flex justify-between gap-4 text-sm">
+    <div className="flex items-center justify-between gap-4 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn('tabular-nums', strong ? 'font-medium text-foreground' : 'text-foreground')}>{value}</span>
+      <span className={cn('tabular-nums', strong ? 'font-semibold text-foreground' : 'text-foreground')}>{value}</span>
     </div>
   );
 }

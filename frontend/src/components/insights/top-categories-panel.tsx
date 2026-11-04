@@ -1,5 +1,6 @@
 import { BarList } from '@/components/charts/bar-list';
-import { EmptyState, Panel } from '@/components/ui';
+import { CategoryIcon, EmptyState, Panel } from '@/components/ui';
+import { accentFor, accentVar } from '@/lib/category-color';
 import { formatMoney, formatMonth, formatPercent } from '@/lib/format';
 import type { DashboardInsightsResponse } from '@/types';
 
@@ -27,7 +28,14 @@ export function TopCategoriesPanel({ categories, month, monthComplete }: TopCate
       {highest ? (
         <BarList
           formatValue={formatMoney}
-          items={top.map((c) => ({ id: c.id, label: c.name, value: c.totalExpense, percentage: c.percentage }))}
+          items={top.map((c) => ({
+            id: c.id,
+            label: c.name,
+            value: c.totalExpense,
+            percentage: c.percentage,
+            color: accentVar(accentFor(c.id)),
+            icon: <CategoryIcon category={c} size="sm" />,
+          }))}
         />
       ) : (
         <EmptyState title={monthComplete ? `No spending in ${monthName}` : `No spending in ${monthName} yet`} />

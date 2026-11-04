@@ -6,8 +6,9 @@ export type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-gho
 export type Size = 'sm' | 'md' | 'icon';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-  secondary: 'border border-border bg-card text-foreground shadow-sm hover:bg-muted',
+  // Lime fill with a subtle gradient and a glow on hover; text on it is always dark.
+  primary: 'bg-brand-fill bg-(image:--gradient-brand) font-semibold text-on-brand shadow-sm hover:shadow-brand-glow',
+  secondary: 'border border-border bg-surface-2 text-foreground hover:border-input hover:bg-muted',
   ghost: 'text-foreground hover:bg-muted',
   danger: 'bg-danger-solid text-white shadow-sm hover:bg-danger-solid/90',
   // Low-emphasis destructive action, e.g. "Delete" in a table row.
@@ -15,15 +16,15 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  icon: 'size-9', // square, for icon-only buttons (pass aria-label)
+  sm: 'h-8 rounded-lg px-3 text-sm',
+  md: 'h-10 rounded-xl px-4 text-sm',
+  icon: 'size-9 rounded-xl', // square, for icon-only buttons (pass aria-label)
 };
 
 /** Classes for anything that should look like a button (e.g. a Link). */
 export function buttonClassName(variant: Variant = 'primary', size: Size = 'md', className?: string) {
   return cn(
-    'inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap transition-colors',
+    'inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150',
     'disabled:pointer-events-none disabled:opacity-50',
     variants[variant],
     sizes[size],

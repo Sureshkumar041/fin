@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, EmptyState, Panel } from '@/components/ui';
+import { Button, CategoryIcon, EmptyState, Panel } from '@/components/ui';
 import { formatDateRange, formatMonth } from '@/lib/format';
 import type { DashboardInsightsResponse } from '@/types';
 import { ComparisonTable, type ComparisonRow } from './comparison-panel';
@@ -48,7 +48,7 @@ export function CategoryComparisonPanel({ data, monthComplete }: CategoryCompari
         mode === 'samePeriod'
           ? { previous: c.samePeriod.previousTotalExpense, current: c.samePeriod.totalExpense, change: c.samePeriod.change }
           : { previous: c.fullMonth.previousTotalExpense, current: c.totalExpense, change: c.fullMonth.change };
-      return { key: c.id, label: c.name, noun: 'spending', colored: true, ...values };
+      return { key: c.id, label: c.name, noun: 'spending', colored: true, icon: <CategoryIcon category={c} size="sm" />, ...values };
     })
     // A category can have spending in one comparison but none in the other.
     .filter((row) => row.previous !== 0 || row.current !== 0);

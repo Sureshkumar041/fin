@@ -11,7 +11,7 @@ type ErrorStateProps = {
 export function ErrorState({ title = "Couldn't load this section", message, onRetry, retrying }: ErrorStateProps) {
   return (
     <div role="alert" className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
-      <div className="mb-1 flex size-11 items-center justify-center rounded-full bg-danger-soft text-danger">
+      <div className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-danger-soft text-danger">
         <AlertIcon />
       </div>
       <p className="text-sm font-medium text-foreground">{title}</p>

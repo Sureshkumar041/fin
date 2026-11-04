@@ -20,9 +20,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150',
                   active
-                    ? 'bg-primary-soft text-primary'
+                    ? // Brand-soft fading out, with a bar on the left. aria-current carries the meaning.
+                      'bg-linear-to-r from-primary-soft to-transparent text-primary before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-primary'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >

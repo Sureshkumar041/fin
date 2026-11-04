@@ -59,9 +59,9 @@ export function Dialog({
         if (e.target === e.currentTarget && dismissible) onClose();
       }}
       className={cn(
-        'border border-border bg-card p-0 text-card-foreground shadow-xl backdrop:bg-overlay',
+        'border border-border bg-card p-0 text-card-foreground shadow-xl backdrop:bg-overlay backdrop:backdrop-blur-sm',
         placement === 'center'
-          ? 'm-auto w-[calc(100%-2rem)] max-w-md rounded-xl'
+          ? 'm-auto w-[calc(100%-2rem)] max-w-md rounded-2xl'
           : 'my-0 mr-auto ml-0 h-dvh max-h-dvh w-72 max-w-[85vw] rounded-none border-y-0 border-l-0',
         className,
       )}
@@ -70,7 +70,7 @@ export function Dialog({
         <div className={placement === 'center' ? 'p-6' : 'flex h-full flex-col'}>
           <div className={cn('flex items-start justify-between gap-4', hideTitle && 'sr-only')}>
             <div>
-              <h2 id={titleId} className="text-lg font-semibold">
+              <h2 id={titleId} className="text-lg font-semibold tracking-tight">
                 {title}
               </h2>
               {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
@@ -81,7 +81,7 @@ export function Dialog({
               type="button"
               onClick={onClose}
               aria-label="Close menu"
-              className="absolute top-3 right-3 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="absolute top-3 right-3 rounded-lg p-2 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
             >
               <CloseIcon />
             </button>

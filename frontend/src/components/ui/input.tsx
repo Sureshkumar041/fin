@@ -9,11 +9,11 @@ type InputProps = ComponentProps<'input'> & {
 /** Shared look for text inputs and selects. */
 export const fieldClassName = (invalid?: boolean, className?: string) =>
   cn(
-    'h-10 w-full rounded-lg border bg-card px-3 text-sm text-foreground shadow-xs transition-colors',
+    'h-10 w-full rounded-xl border bg-surface-2 px-3 text-sm text-foreground transition-[border-color,background-color] duration-150',
     'placeholder:text-muted-foreground',
-    'focus-visible:border-ring focus-visible:outline-offset-0',
+    'hover:border-muted-foreground focus-visible:border-ring focus-visible:bg-card focus-visible:outline-offset-0',
     'disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground',
-    invalid ? 'border-danger focus-visible:outline-danger' : 'border-input',
+    invalid ? 'border-danger bg-danger-soft/40 focus-visible:outline-danger hover:border-danger' : 'border-input',
     className,
   );
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { EmptyState, ErrorState, Panel, Skeleton } from '@/components/ui';
+import { CategoryIcon, EmptyState, ErrorState, Panel, Skeleton } from '@/components/ui';
 import { formatDate, formatMoney } from '@/lib/format';
 import type { ExpenseListResponse } from '@/types';
 
@@ -19,7 +19,7 @@ export function RecentExpensesPanel({ data, loading, refreshing, error, onRetry 
       title="Recent expenses"
       actions={
         expenses.length > 0 && (
-          <Link href="/expenses" className="text-sm font-medium text-primary hover:underline">
+          <Link href="/expenses" className="rounded-md text-sm font-medium text-primary hover:underline">
             View all
           </Link>
         )
@@ -38,16 +38,17 @@ export function RecentExpensesPanel({ data, loading, refreshing, error, onRetry 
       ) : (
         <ul className={refreshing ? 'divide-y divide-border opacity-60' : 'divide-y divide-border'}>
           {expenses.map((e) => (
-            <li key={e.id} className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-foreground">{e.description ?? e.category.name}</p>
+            <li key={e.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <CategoryIcon category={e.category} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{e.description ?? e.category.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {e.category.name} · {formatDate(e.expenseDate)}
                 </p>
               </div>
               {e.split ? (
                 // Your share is your spending; the full amount you paid is secondary.
-                <p className="shrink-0 text-right text-sm font-medium tabular-nums text-foreground" title={`Your share of ${formatMoney(e.amount)} paid`}>
+                <p className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground" title={`Your share of ${formatMoney(e.amount)} paid`}>
                   <span className="sr-only">Your share of {formatMoney(e.amount)} paid: </span>
                   <span className="block">{formatMoney(e.split.ownShare)}</span>
                   <span aria-hidden className="block text-xs font-normal text-muted-foreground">
@@ -55,7 +56,7 @@ export function RecentExpensesPanel({ data, loading, refreshing, error, onRetry 
                   </span>
                 </p>
               ) : (
-                <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
+                <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
                   {formatMoney(e.amount)}
                 </p>
               )}

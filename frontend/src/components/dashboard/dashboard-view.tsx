@@ -1,14 +1,16 @@
 'use client';
 
+import { ReceiptIcon, WalletIcon } from '@/components/icons';
 import { ButtonLink, EmptyState, ErrorState, Panel } from '@/components/ui';
 import { useApi } from '@/hooks/use-api';
 import { dashboardApi, expensesApi } from '@/lib/api';
 import { formatMoney, formatMonth, monthStartIso, todayIso } from '@/lib/format';
 import { toPaise } from '@/lib/split';
 import { CategoryPanel } from './category-panel';
-import { MonthChange } from './month-change';
 import { MonthlyPanel } from './monthly-panel';
 import { RecentExpensesPanel } from './recent-expenses-panel';
+import { SharedExpensesCard } from './shared-expenses-card';
+import { SpendingHero } from './spending-hero';
 import { StatTile } from './stat-tile';
 
 export function DashboardView() {
@@ -21,7 +23,6 @@ export function DashboardView() {
 
   const s = summary.data;
   const months = monthly.data?.months ?? [];
-  const [previous, current] = months.slice(-2);
 
   if (summary.error && !s) {
     return (
@@ -40,34 +41,34 @@ export function DashboardView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <SpendingHero
+        label={s ? `Spent in ${formatMonth(s.currentMonth.month, 'long')}` : 'This month'}
+        amount={s?.currentMonth.totalExpense}
+        months={months}
+        loading={summary.loading}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         {/* totalExpense is your own spending: your share of split expenses, not what you paid for others. */}
-        <StatTile label="Your spending" value={s && formatMoney(s.totalExpense)} footnote="All time" loading={summary.loading} />
         <StatTile
-          label={s ? `Spent in ${formatMonth(s.currentMonth.month, 'long')}` : 'This month'}
-          value={s && formatMoney(s.currentMonth.totalExpense)}
-          footnote={current && previous ? <MonthChange current={current} previous={previous} /> : 'This month'}
+          label="Your spending"
+          value={s && formatMoney(s.totalExpense)}
+          footnote="All time"
           loading={summary.loading}
+          accent="lime"
+          icon={<WalletIcon />}
         />
         <StatTile
           label="Transactions"
           value={s && s.expenseCount.toLocaleString()}
           footnote={s && `${s.currentMonth.expenseCount.toLocaleString()} this month`}
           loading={summary.loading}
+          accent="violet"
+          icon={<ReceiptIcon />}
         />
       </div>
 
-      {s && hasSplitAmounts && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatTile
-            label="Total paid"
-            value={formatMoney(s.totalPaid)}
-            footnote={`Incl. others’ shares · ${formatMoney(s.currentMonth.totalPaid)} this month`}
-          />
-          <StatTile label="Owed to you" value={formatMoney(s.owedToYou)} footnote="Shares not paid back yet" />
-          <StatTile label="Settled to you" value={formatMoney(s.settledToYou)} footnote="Shares paid back to you" />
-        </div>
-      )}
+      {s && hasSplitAmounts && <SharedExpensesCard summary={s} />}
 
       {isEmpty ? (
         <Panel title="Get started">

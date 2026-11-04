@@ -61,6 +61,8 @@ export type ComparisonRow = {
   noun?: string;
   /** Red/green for your own spending (see MoneyChange). */
   colored?: boolean;
+  /** Decorative, before the label, e.g. a category icon. */
+  icon?: ReactNode;
 };
 
 type ComparisonTableProps = {
@@ -92,7 +94,10 @@ export function ComparisonTable({ rows, rowHeader, previousLabel, currentLabel, 
       <ul className="divide-y divide-border sm:hidden">
         {rows.map((row) => (
           <li key={row.key} className="py-3 first:pt-0 last:pb-0">
-            <p className="text-sm font-medium text-foreground">{row.label}</p>
+            <p className="flex items-center gap-2.5 text-sm font-medium text-foreground">
+              {row.icon}
+              {row.label}
+            </p>
             <dl className="mt-1 grid grid-cols-2 gap-x-4 text-sm">
               <div>
                 <dt className="sr-only">{previousLabel}</dt>
@@ -122,8 +127,15 @@ export function ComparisonTable({ rows, rowHeader, previousLabel, currentLabel, 
           {rows.map((row) => (
             <TableRow key={row.key}>
               {/* A row header, styled like the other cells (TableHead is for column headings). */}
-              <th scope="row" className="py-3 pr-3 text-left font-normal">
-                {row.label}
+              <th scope="row" className="py-3.5 pr-3 text-left font-normal">
+                {row.icon ? (
+                  <span className="flex items-center gap-2.5">
+                    {row.icon}
+                    {row.label}
+                  </span>
+                ) : (
+                  row.label
+                )}
               </th>
               <TableCell className="text-right tabular-nums text-muted-foreground">{formatMoney(row.previous)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatMoney(row.current)}</TableCell>

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui';
+import { Avatar, Button } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
 import type { Contact } from '@/types';
 
@@ -14,15 +14,16 @@ export function ContactList({ contacts, onView, onEdit, onDelete }: ContactListP
   return (
     <ul className="divide-y divide-border">
       {contacts.map((c) => (
-        <li key={c.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-          <div className="min-w-0">
+        <li key={c.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+          <Avatar name={c.name} colorKey={c.id} />
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground" title={c.name}>
               {c.name}
             </p>
             {/* owesYou comes from the API (their PENDING shares); it's never worked out here. */}
             <p className="text-xs tabular-nums">
               {c.owesYou > 0 ? (
-                <span className="font-medium text-foreground">{formatMoney(c.owesYou)} owed</span>
+                <span className="font-medium text-warning">{formatMoney(c.owesYou)} owed</span>
               ) : (
                 <span className="text-muted-foreground">Nothing owed</span>
               )}

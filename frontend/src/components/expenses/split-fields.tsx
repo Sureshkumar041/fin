@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { CloseIcon } from '@/components/icons';
-import { Alert, Button, Input, Select, Skeleton } from '@/components/ui';
+import { Alert, Avatar, Button, Input, Select, Skeleton } from '@/components/ui';
 import { useApi } from '@/hooks/use-api';
 import { contactsApi, type FieldErrors } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -32,7 +32,7 @@ export function ChoiceGroup<T extends string>({
   disabled?: boolean;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="grid auto-cols-fr grid-flow-col gap-1 rounded-lg border border-border bg-muted p-1">
+    <div role="radiogroup" aria-label={label} className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl border border-border bg-surface-2 p-1">
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -44,8 +44,8 @@ export function ChoiceGroup<T extends string>({
             disabled={disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              'h-8 rounded-md px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-              selected ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
+              'h-8 rounded-lg px-3 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+              selected ? 'bg-card text-foreground shadow-card ring-1 ring-border' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
             {option.label}
@@ -129,6 +129,7 @@ export function SplitFields({ values, onChange, amount, errors, disabled }: Spli
               return (
                 <li key={p.contactId} className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
+                    <Avatar name={p.name} colorKey={p.contactId} size="sm" />
                     <label htmlFor={inputId} className="min-w-0 flex-1 truncate text-sm text-foreground">
                       {p.name}
                     </label>
@@ -237,7 +238,7 @@ export function SplitFields({ values, onChange, amount, errors, disabled }: Spli
 
 function SplitSummary({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg bg-muted px-3 py-2.5">
+    <div className="rounded-xl border border-border bg-surface-2 px-4 py-3">
       <dl className="flex flex-col gap-1 text-sm">{children}</dl>
       <p className="mt-2 text-xs text-muted-foreground">Final shares are calculated when you save.</p>
     </div>
@@ -248,7 +249,7 @@ function SummaryRow({ label, value, strong, danger }: { label: string; value: st
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={cn('tabular-nums', strong && 'font-medium text-foreground', danger && 'text-danger')}>{value}</dd>
+      <dd className={cn('tabular-nums', strong && 'font-semibold text-foreground', danger && 'text-danger')}>{value}</dd>
     </div>
   );
 }

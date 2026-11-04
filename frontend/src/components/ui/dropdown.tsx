@@ -113,7 +113,7 @@ export function Dropdown({
             aria-label={label}
             onKeyDown={onMenuKeyDown}
             className={cn(
-              'absolute z-50 mt-2 min-w-48 rounded-xl border border-border bg-card p-1 text-card-foreground shadow-lg',
+              'absolute z-50 mt-2 min-w-48 rounded-xl border border-border bg-card p-1.5 text-card-foreground shadow-lg',
               align === 'end' ? 'right-0' : 'left-0',
             )}
           >
@@ -149,7 +149,7 @@ export function DropdownItem({ onSelect, icon, checked, variant = 'default', chi
       }}
       className={cn(
         'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none',
-        'hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+        'transition-colors duration-150 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
         variant === 'danger' ? 'text-danger' : 'text-foreground',
       )}
     >

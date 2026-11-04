@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type BarListItem = {
   id: string;
   label: string;
@@ -6,6 +8,10 @@ export type BarListItem = {
   percentage: number;
   /** De-emphasised bar, used for the "Other" bucket. */
   muted?: boolean;
+  /** Bar colour (a CSS colour, e.g. a category's accent); defaults to the series colour. */
+  color?: string;
+  /** Shown before the label, e.g. a category icon. */
+  icon?: ReactNode;
   /** Optional small line under the label, e.g. "₹1,200.00 paid". */
   detail?: string;
 };
@@ -21,13 +27,17 @@ type BarListProps = {
  */
 export function BarList({ items, formatValue }: BarListProps) {
   const max = Math.max(...items.map((i) => i.value), 0) || 1;
+  const bar = (item: BarListItem) => (item.muted ? 'var(--chart-other)' : (item.color ?? 'var(--chart-series)'));
 
   return (
     <ul className="flex flex-col gap-3.5">
       {items.map((item) => (
         <li key={item.id}>
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="truncate text-foreground">{item.label}</span>
+            <span className="flex min-w-0 items-center gap-2.5">
+              {item.icon}
+              <span className="truncate text-foreground">{item.label}</span>
+            </span>
             <span className="shrink-0 tabular-nums text-foreground">
               {formatValue(item.value)}
               <span className="ml-2 inline-block w-11 text-right text-muted-foreground">
@@ -36,12 +46,13 @@ export function BarList({ items, formatValue }: BarListProps) {
             </span>
           </div>
           {item.detail && <p className="text-xs text-muted-foreground tabular-nums">{item.detail}</p>}
-          <div className="mt-1.5 h-2" aria-hidden>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
             <div
-              className="h-full rounded-r"
+              className="h-full rounded-full"
               style={{
                 width: `${Math.max((item.value / max) * 100, 1)}%`,
-                background: item.muted ? 'var(--chart-other)' : 'var(--chart-series)',
+                // Full colour on the right, ~60% on the left.
+                background: `linear-gradient(90deg, color-mix(in srgb, ${bar(item)} 60%, transparent), ${bar(item)})`,
               }}
             />
           </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Alert, Button, FormField, Input, PasswordInput } from '@/components/ui';
+import { IconField, LockIcon, MailIcon } from './auth-icons';
 import { toFormErrors, type FieldErrors } from '@/lib/api';
 import { validateLogin } from '@/lib/validation';
 import type { LoginInput } from '@/types';
@@ -46,32 +47,38 @@ export function LoginForm() {
       {formError && <Alert variant="error">{formError}</Alert>}
 
       <FormField label="Email" htmlFor="email" error={errors.email}>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={values.email}
-          onChange={handleChange}
-          invalid={!!errors.email}
-          disabled={submitting}
-          required
-        />
+        <IconField icon={<MailIcon />}>
+          <Input
+            id="email"
+            className="pl-10!"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={values.email}
+            onChange={handleChange}
+            invalid={!!errors.email}
+            disabled={submitting}
+            required
+          />
+        </IconField>
       </FormField>
 
       <FormField label="Password" htmlFor="password" error={errors.password}>
-        <PasswordInput
-          id="password"
-          name="password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
-          value={values.password}
-          onChange={handleChange}
-          invalid={!!errors.password}
-          disabled={submitting}
-          required
-        />
+        <IconField icon={<LockIcon />}>
+          <PasswordInput
+            id="password"
+            className="pl-10!"
+            name="password"
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            value={values.password}
+            onChange={handleChange}
+            invalid={!!errors.password}
+            disabled={submitting}
+            required
+          />
+        </IconField>
       </FormField>
 
       <Button type="submit" loading={submitting} className="mt-2 w-full">

@@ -25,13 +25,13 @@ export const TableBody = ({ className, ...props }: ComponentProps<'tbody'>) => (
 );
 
 export const TableRow = ({ className, ...props }: ComponentProps<'tr'>) => (
-  <tr className={cn('border-b border-border transition-colors hover:bg-muted/60', className)} {...props} />
+  <tr className={cn('border-b border-border transition-colors duration-150 hover:bg-muted/50', className)} {...props} />
 );
 
 export const TableHead = ({ className, ...props }: ComponentProps<'th'>) => (
-  <th className={cn('h-10 px-3 text-left align-middle text-xs font-medium tracking-wide text-muted-foreground uppercase first:pl-0 last:pr-0', className)} {...props} />
+  <th className={cn('h-10 px-3 text-left align-middle text-xs font-semibold tracking-wide text-muted-foreground uppercase first:pl-0 last:pr-0', className)} {...props} />
 );
 
 export const TableCell = ({ className, ...props }: ComponentProps<'td'>) => (
-  <td className={cn('px-3 py-3 align-middle first:pl-0 last:pr-0', className)} {...props} />
+  <td className={cn('px-3 py-3.5 align-middle first:pl-0 last:pr-0', className)} {...props} />
 );

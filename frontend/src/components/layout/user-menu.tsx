@@ -2,16 +2,7 @@
 
 import { useAuth } from '@/components/auth';
 import { ChevronDownIcon, LogOutIcon } from '@/components/icons';
-import { Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from '@/components/ui';
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join('');
-}
+import { Avatar, Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from '@/components/ui';
 
 /** Avatar + name in the header; opens a menu with account details and Log out. */
 export function UserMenu() {
@@ -24,9 +15,7 @@ export function UserMenu() {
       triggerClassName="h-10 gap-2 px-1.5 sm:pr-2.5"
       trigger={
         <>
-          <span className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
-            {initials(user.name)}
-          </span>
+          <Avatar name={user.name} colorKey={user.id} size="sm" className="size-8" />
           <span className="hidden max-w-40 truncate text-sm font-medium sm:inline">{user.name}</span>
           <ChevronDownIcon className="hidden size-4 text-muted-foreground sm:inline" />
         </>

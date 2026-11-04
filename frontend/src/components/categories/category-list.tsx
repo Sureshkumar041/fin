@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { Button, CategoryIcon } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
 import type { Category, CategoryTotal } from '@/types';
 
@@ -17,8 +17,9 @@ export function CategoryList({ categories, totals, onEdit, onDelete }: CategoryL
       {categories.map((c) => {
         const total = totals?.get(c.id);
         return (
-          <li key={c.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0">
-            <div className="min-w-0">
+          <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 first:pt-0 last:pb-0">
+            <CategoryIcon category={c} />
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{c.name}</p>
               {total && (
                 <p className="text-xs text-muted-foreground">

@@ -7,7 +7,9 @@ import { Brand } from '@/components/layout/brand';
 import { ThemeToggle, useTheme } from '@/components/theme';
 import {
   Alert,
+  Avatar,
   Badge,
+  CategoryIcon,
   Button,
   Card,
   ConfirmDialog,
@@ -38,17 +40,36 @@ const tokens = [
   ['background', 'bg-background'],
   ['foreground', 'bg-foreground'],
   ['card', 'bg-card'],
+  ['surface-2', 'bg-surface-2'],
   ['muted', 'bg-muted'],
   ['muted-foreground', 'bg-muted-foreground'],
+  ['subtle', 'bg-subtle'],
   ['border', 'bg-border'],
   ['input', 'bg-input'],
   ['ring', 'bg-ring'],
   ['primary', 'bg-primary'],
   ['primary-soft', 'bg-primary-soft'],
+  ['brand-fill', 'bg-brand-fill'],
+  ['on-brand', 'bg-on-brand'],
   ['secondary', 'bg-secondary'],
   ['success', 'bg-success'],
   ['warning', 'bg-warning'],
   ['danger', 'bg-danger'],
+  ['info', 'bg-info'],
+] as const;
+
+// Written out in full so Tailwind generates every class: [name, mark, text on soft].
+const accents = [
+  ['lime', 'bg-accent-lime', 'bg-accent-lime-soft text-accent-lime-fg'],
+  ['cyan', 'bg-accent-cyan', 'bg-accent-cyan-soft text-accent-cyan-fg'],
+  ['violet', 'bg-accent-violet', 'bg-accent-violet-soft text-accent-violet-fg'],
+  ['pink', 'bg-accent-pink', 'bg-accent-pink-soft text-accent-pink-fg'],
+  ['amber', 'bg-accent-amber', 'bg-accent-amber-soft text-accent-amber-fg'],
+  ['emerald', 'bg-accent-emerald', 'bg-accent-emerald-soft text-accent-emerald-fg'],
+  ['orange', 'bg-accent-orange', 'bg-accent-orange-soft text-accent-orange-fg'],
+  ['sky', 'bg-accent-sky', 'bg-accent-sky-soft text-accent-sky-fg'],
+  ['rose', 'bg-accent-rose', 'bg-accent-rose-soft text-accent-rose-fg'],
+  ['indigo', 'bg-accent-indigo', 'bg-accent-indigo-soft text-accent-indigo-fg'],
 ] as const;
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -93,6 +114,21 @@ export function DesignSystemShowcase() {
                 <code className="text-xs text-muted-foreground">{name}</code>
               </div>
             ))}
+          </div>
+        </Section>
+
+        <Section title="Accent palette">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {accents.map(([name, mark, chip]) => (
+              <div key={name} className="flex items-center gap-2">
+                <span className={`size-8 shrink-0 rounded-full ${mark}`} />
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${chip}`}>{name}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-lg bg-brand-fill px-3 py-1.5 text-sm font-medium text-on-brand">Brand fill</span>
+            <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info">Info</span>
           </div>
         </Section>
 
@@ -141,6 +177,24 @@ export function DesignSystemShowcase() {
             <Badge variant="success">Paid</Badge>
             <Badge variant="warning">Over budget</Badge>
             <Badge variant="danger">Overdue</Badge>
+            <Badge variant="info">Info</Badge>
+            <Badge variant="cyan">Equal</Badge>
+            <Badge variant="violet">Custom</Badge>
+            <Badge variant="pink">Percentage</Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {['Groceries', 'Rent', 'Travel', 'Dining out', 'Utilities'].map((name) => (
+              <span key={name} className="flex items-center gap-2 text-sm">
+                <CategoryIcon category={{ id: name, name }} size="sm" />
+                {name}
+              </span>
+            ))}
+            <Avatar name="Asha Rao" colorKey="contact-1" />
+            <Avatar name="Vikram Iyer" colorKey="contact-2" />
+          </div>
+          <div className="rounded-2xl bg-(image:--gradient-hero) p-5 text-on-brand">
+            <p className="text-sm font-medium">Hero gradient</p>
+            <p className="text-3xl font-bold tracking-tight">₹36,431.00</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <Alert variant="info">Heads up: this is an informational message.</Alert>

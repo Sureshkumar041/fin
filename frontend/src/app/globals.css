@@ -19,74 +19,205 @@
   color-scheme: light;
 
   /* Surfaces */
-  --background: #f6f8f7; /* page */
-  --foreground: #0f1a16; /* main text */
+  --background: #f4f6f8; /* page */
+  --foreground: #0f1419; /* main text */
   --card: #ffffff; /* cards, panels, dialogs, sidebar */
-  --card-foreground: #0f1a16;
-  --muted: #eef2f0; /* subtle fills: hover rows, skeletons, table headers */
-  --muted-foreground: #55635d; /* secondary text: 6.3:1 on card */
-  --border: #e2e8e5; /* dividers and card outlines */
-  --input: #86948e; /* form control borders: 3.2:1 on card */
-  --ring: #059669; /* keyboard focus outline: 3.8:1 on card */
-  --overlay: rgb(15 26 22 / 0.45); /* behind modals */
+  --card-foreground: #0f1419;
+  --surface-2: #f8fafb; /* raised areas inside a card: inputs, segmented controls */
+  --muted: #edf1f4; /* subtle fills: hover rows, skeletons, neutral badges */
+  --muted-foreground: #5b6774; /* secondary text: 5.8:1 on card, 5.1:1 on muted */
+  --subtle: #8a95a1; /* non-text only (decoration, disabled): 3.1:1 on card, never for text */
+  --border: #e2e8ee; /* dividers and card outlines */
+  --input: #7c8793; /* form control borders: 3.7:1 on card, 3.4:1 on page */
+  --ring: #4d7c0f; /* keyboard focus outline: 5.0:1 on card, 4.6:1 on page */
+  --overlay: rgb(15 20 25 / 0.45); /* behind modals */
+  --card-shadow: 0 1px 2px rgb(15 20 25 / 0.04), 0 2px 8px rgb(15 20 25 / 0.05);
 
-  /* Brand */
-  --primary: #047857; /* emerald-700: white text 5.5:1 */
-  --primary-foreground: #ffffff;
-  --primary-soft: #e6f5ee; /* active nav item, selected states */
-  --secondary: #eef2f0;
-  --secondary-foreground: #1c2b25;
+  /* Brand. Bright lime is too light for text on white, so text, icons and
+     links use the darker lime (--primary); bright lime is only a fill, always
+     with dark text on it. */
+  --primary: #4d7c0f; /* brand text, icons, links, active nav: 5.0:1 on card */
+  --primary-foreground: #ffffff; /* on --primary: 5.0:1 */
+  --primary-soft: #f0f6e7; /* active nav, selected states: --primary on it 4.5:1 */
+  --brand-fill: #a3e635; /* primary buttons, highlights */
+  --on-brand: #0f1419; /* text on --brand-fill: 12.3:1 */
+  --secondary: #f8fafb;
+  --secondary-foreground: #0f1419;
 
-  /* Status: `--x` is text/icon colour, `--x-soft` its tinted background */
-  --success: #15803d;
-  --success-soft: #ecfdf3;
-  --warning: #a15c07;
-  --warning-soft: #fef7e6;
-  --danger: #c0262d;
-  --danger-soft: #fef2f2;
-  --danger-solid: #c0262d; /* destructive buttons, with white text */
+  /* Status: `--x` is text/icon colour, `--x-soft` its tinted background.
+     Every `--x` passes 4.5:1 on card, page, surface-2 and its own soft. */
+  --success: #047857;
+  --success-soft: #e6f5f0;
+  --warning: #92400e;
+  --warning-soft: #f8eee6;
+  --danger: #b91c1c;
+  --danger-soft: #fce9e9;
+  --danger-solid: #dc2626; /* destructive buttons, with white text: 4.8:1 */
+  --info: #0e7490;
+  --info-soft: #e6f4f7;
 
-  /* Charts (single-series colour validated for contrast on the card) */
-  --chart-series: #059669;
-  --chart-other: #a3aea9;
-  --chart-grid: #eef2f0;
-  --chart-axis: #cfd8d4;
-  --chart-hover: #f3f6f4;
+  /* Accent palette for categories, stats and badges. `--accent-x` is the
+     mark colour (chart bars, icons on cards: >= 3:1 on card), `-fg` the text
+     colour (>= 4.5:1 on card, page and its soft), `-soft` the tinted chip. */
+  --accent-lime: #65a30d;
+  --accent-lime-fg: #4d7c0f;
+  --accent-lime-soft: #f0f6e7;
+  --accent-cyan: #0891b2;
+  --accent-cyan-fg: #0e7490;
+  --accent-cyan-soft: #e6f4f7;
+  --accent-violet: #7c3aed;
+  --accent-violet-fg: #7c3aed;
+  --accent-violet-soft: #f2ebfd;
+  --accent-pink: #db2777;
+  --accent-pink-fg: #be185d;
+  --accent-pink-soft: #fbe9f1;
+  --accent-amber: #b45309;
+  --accent-amber-fg: #92400e;
+  --accent-amber-soft: #f8eee6;
+  --accent-emerald: #059669;
+  --accent-emerald-fg: #047857;
+  --accent-emerald-soft: #e6f5f0;
+  --accent-orange: #ea580c;
+  --accent-orange-fg: #9a3412;
+  --accent-orange-soft: #fdeee7;
+  --accent-sky: #0284c7;
+  --accent-sky-fg: #0369a1;
+  --accent-sky-soft: #e6f3f9;
+  --accent-rose: #e11d48;
+  --accent-rose-fg: #be123c;
+  --accent-rose-soft: #fce8ed;
+  --accent-indigo: #4f46e5;
+  --accent-indigo-fg: #4f46e5;
+  --accent-indigo-soft: #ededfc;
+
+  /* Charts */
+  --chart-series: #65a30d; /* your spending: 3.1:1 on card */
+  --chart-paid: #0891b2; /* total paid (incl. others' shares): 3.7:1 on card */
+  --chart-other: #9aa5b1; /* the "Other" bucket */
+  --chart-grid: #e2e8ee;
+  --chart-axis: #c5ced7;
+  --chart-hover: #f4f6f8;
+
+  /* Gradients. Text on a gradient must pass at every point: the hero and the
+     accent circles use dark text (>= 6.2:1 on every stop, both themes). */
+  --gradient-hero: linear-gradient(135deg, #a3e635 0%, #22d3ee 100%); /* --on-brand: 10.2:1 at worst */
+  --gradient-brand: linear-gradient(180deg, #b8ef5c 0%, #a3e635 100%); /* primary buttons */
+  --brand-glow: 0 0 0 3px rgb(163 230 53 / 0.35), 0 6px 16px -6px rgb(101 163 13 / 0.5);
+  /* Decorative page glows; low enough that brand text on the page still passes (>= 4.46:1). */
+  --gradient-page: radial-gradient(60rem 32rem at 0% 0%, rgb(163 230 53 / 0.05), transparent 70%),
+    radial-gradient(50rem 30rem at 100% 0%, rgb(34 211 238 / 0.04), transparent 70%);
+  --card-hover-shadow: 0 2px 4px rgb(15 20 25 / 0.05), 0 12px 24px -8px rgb(15 20 25 / 0.12);
+
+  /* Accent gradient circles (avatars, category icons, stat chips): the bright
+     fills in both themes, always with dark text or icons on them. */
+  --gradient-lime: linear-gradient(135deg, #a3e635, #34d399);
+  --gradient-emerald: linear-gradient(135deg, #34d399, #22d3ee);
+  --gradient-cyan: linear-gradient(135deg, #22d3ee, #38bdf8);
+  --gradient-sky: linear-gradient(135deg, #38bdf8, #818cf8);
+  --gradient-violet: linear-gradient(135deg, #a78bfa, #818cf8);
+  --gradient-indigo: linear-gradient(135deg, #818cf8, #a78bfa);
+  --gradient-pink: linear-gradient(135deg, #f472b6, #fb7185);
+  --gradient-rose: linear-gradient(135deg, #fb7185, #f472b6);
+  --gradient-amber: linear-gradient(135deg, #fbbf24, #fb923c);
+  --gradient-orange: linear-gradient(135deg, #fb923c, #fb7185);
+
+  /* Login/register brand panel. Light: the hero gradient with dark text
+     (>= 10.2:1). Dark: a slate panel with soft glows (below). */
+  --auth-panel: var(--gradient-hero);
+  --auth-panel-fill: #a3e635;
+  --auth-panel-foreground: #0f1419;
+  --auth-panel-logo: #0f1419; /* logo tile; its icon is --brand-fill */
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0a100e;
-  --foreground: #e8eeeb;
-  --card: #111916;
-  --card-foreground: #e8eeeb;
-  --muted: #18221e;
-  --muted-foreground: #9aa8a2; /* 7.2:1 on card */
-  --border: #24312c;
-  --input: #627069; /* 3.4:1 on card */
-  --ring: #34d399;
+  /* Depth comes from slightly lighter surfaces, not shadows. */
+  --background: #0f1419;
+  --foreground: #e9eef3;
+  --card: #171e26;
+  --card-foreground: #e9eef3;
+  --surface-2: #1e2731;
+  --muted: #222b36;
+  --muted-foreground: #8794a3; /* 5.4:1 on card, 4.6:1 on muted */
+  --subtle: #5c6b7a; /* non-text only: 3.1:1 on card, never for text */
+  --border: #26303c;
+  --input: #66768a; /* 3.6:1 on card, 3.3:1 on surface-2 */
+  --ring: #a3e635;
   --overlay: rgb(0 0 0 / 0.6);
+  --card-shadow: none;
 
-  --primary: #34d399; /* emerald-400 with dark text: 7.9:1 */
-  --primary-foreground: #022c1f;
-  --primary-soft: #10261e;
-  --secondary: #1b2622;
-  --secondary-foreground: #e0e8e4;
+  --primary: #a3e635; /* 11.1:1 on card */
+  --primary-foreground: #0f1419;
+  --primary-soft: #283628; /* --primary on it 8.5:1 */
+  --brand-fill: #a3e635;
+  --on-brand: #0f1419;
+  --secondary: #1e2731;
+  --secondary-foreground: #e9eef3;
 
-  --success: #4ade80;
-  --success-soft: #0f2a1c;
+  --success: #34d399;
+  --success-soft: #1a3434;
   --warning: #fbbf24;
-  --warning-soft: #2e2207;
+  --warning-soft: #323126;
   --danger: #f87171;
-  --danger-soft: #2c1214;
+  --danger-soft: #32282f;
   --danger-solid: #dc2626; /* white text 4.8:1 */
+  --info: #22d3ee;
+  --info-soft: #18343e;
 
-  --chart-series: #0ea572;
-  --chart-other: #5b6a64;
-  --chart-grid: #1c2723;
-  --chart-axis: #34433d;
-  --chart-hover: #16201c;
+  /* In dark mode the fill colour is also the text and icon colour. */
+  --accent-lime: #a3e635;
+  --accent-lime-fg: #a3e635;
+  --accent-lime-soft: #283628;
+  --accent-cyan: #22d3ee;
+  --accent-cyan-fg: #22d3ee;
+  --accent-cyan-soft: #18343e;
+  --accent-violet: #a78bfa;
+  --accent-violet-fg: #a78bfa;
+  --accent-violet-soft: #282b3f;
+  --accent-pink: #f472b6;
+  --accent-pink-fg: #f472b6;
+  --accent-pink-soft: #322837;
+  --accent-amber: #fbbf24;
+  --accent-amber-fg: #fbbf24;
+  --accent-amber-soft: #323126;
+  --accent-emerald: #34d399;
+  --accent-emerald-fg: #34d399;
+  --accent-emerald-soft: #1a3434;
+  --accent-orange: #fb923c;
+  --accent-orange-fg: #fb923c;
+  --accent-orange-soft: #322c29;
+  --accent-sky: #38bdf8;
+  --accent-sky-fg: #38bdf8;
+  --accent-sky-soft: #1b313f;
+  --accent-rose: #fb7185;
+  --accent-rose-fg: #fb7185;
+  --accent-rose-soft: #322831;
+  --accent-indigo: #818cf8;
+  --accent-indigo-fg: #818cf8;
+  --accent-indigo-soft: #242b3f;
+
+  --chart-series: #a3e635;
+  --chart-paid: #22d3ee;
+  --chart-other: #4a5868;
+  --chart-grid: #26303c;
+  --chart-axis: #3a4654;
+  --chart-hover: #1e2731;
+
+  --brand-glow: 0 0 0 3px rgb(163 230 53 / 0.25), 0 0 24px -4px rgb(163 230 53 / 0.45);
+  --gradient-page: radial-gradient(60rem 32rem at 0% 0%, rgb(163 230 53 / 0.07), transparent 70%),
+    radial-gradient(50rem 30rem at 100% 0%, rgb(167 139 250 / 0.06), transparent 70%);
+  /* Dark: interactive cards glow at the border instead of lifting a shadow. */
+  --card-hover-shadow: 0 0 0 1px rgb(163 230 53 / 0.3), 0 0 24px -8px rgb(163 230 53 / 0.25);
+
+  /* Slightly lighter than the page, with soft lime, cyan and violet glows.
+     Light text on it: >= 6.1:1 even where all three glows overlap. */
+  --auth-panel: radial-gradient(36rem 26rem at 0% 0%, rgb(163 230 53 / 0.16), transparent 70%),
+    radial-gradient(32rem 24rem at 100% 35%, rgb(34 211 238 / 0.14), transparent 70%),
+    radial-gradient(36rem 28rem at 25% 100%, rgb(167 139 250 / 0.16), transparent 70%);
+  --auth-panel-fill: #171e26;
+  --auth-panel-foreground: #e9eef3;
+  --auth-panel-logo: #0f1419;
 }
 
 /* Expose the tokens as Tailwind colours: bg-card, text-muted-foreground, ... */
@@ -95,8 +226,10 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -105,6 +238,8 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
+  --color-brand-fill: var(--brand-fill);
+  --color-on-brand: var(--on-brand);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
 
@@ -115,6 +250,43 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-solid: var(--danger-solid);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-accent-lime: var(--accent-lime);
+  --color-accent-lime-fg: var(--accent-lime-fg);
+  --color-accent-lime-soft: var(--accent-lime-soft);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-cyan-fg: var(--accent-cyan-fg);
+  --color-accent-cyan-soft: var(--accent-cyan-soft);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-fg: var(--accent-violet-fg);
+  --color-accent-violet-soft: var(--accent-violet-soft);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-pink-fg: var(--accent-pink-fg);
+  --color-accent-pink-soft: var(--accent-pink-soft);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-amber-fg: var(--accent-amber-fg);
+  --color-accent-amber-soft: var(--accent-amber-soft);
+  --color-accent-emerald: var(--accent-emerald);
+  --color-accent-emerald-fg: var(--accent-emerald-fg);
+  --color-accent-emerald-soft: var(--accent-emerald-soft);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-orange-fg: var(--accent-orange-fg);
+  --color-accent-orange-soft: var(--accent-orange-soft);
+  --color-accent-sky: var(--accent-sky);
+  --color-accent-sky-fg: var(--accent-sky-fg);
+  --color-accent-sky-soft: var(--accent-sky-soft);
+  --color-accent-rose: var(--accent-rose);
+  --color-accent-rose-fg: var(--accent-rose-fg);
+  --color-accent-rose-soft: var(--accent-rose-soft);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-indigo-fg: var(--accent-indigo-fg);
+  --color-accent-indigo-soft: var(--accent-indigo-soft);
+
+  --shadow-card: var(--card-shadow);
+  --shadow-card-hover: var(--card-hover-shadow);
+  --shadow-brand-glow: var(--brand-glow);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -135,7 +307,8 @@
   }
 
   body {
-    background: var(--background);
+    background: var(--gradient-page), var(--background);
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -144,5 +317,22 @@
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  /* Amounts line up in columns everywhere. */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Reduced motion: no movement or pulsing; colour changes stay instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

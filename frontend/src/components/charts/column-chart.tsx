@@ -81,6 +81,8 @@ export function ColumnChart({
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const bars = useRef<(SVGRectElement | null)[]>([]);
   const hintId = useId();
+  // SVG ids for the bar gradients (url(#…) needs plain characters).
+  const gradientId = `cc${useId().replace(/[^\w-]/g, '')}`;
   const peak = (d: ColumnDatum) => Math.max(d.value, d.background ?? 0);
   const describe = (d: ColumnDatum) =>
     d.background !== undefined
@@ -114,6 +116,17 @@ export function ColumnChart({
       </span>
       {width > 0 && (
         <svg width={width} height={height} role="img" aria-label={ariaLabel} className="block">
+          {/* Soft vertical gradients: full colour at the top, ~60% at the bottom. */}
+          <defs>
+            <linearGradient id={`${gradientId}-series`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="var(--chart-series)" />
+              <stop offset="100%" stopColor="var(--chart-series)" stopOpacity={0.6} />
+            </linearGradient>
+            <linearGradient id={`${gradientId}-paid`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="var(--chart-paid)" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="var(--chart-paid)" stopOpacity={0.25} />
+            </linearGradient>
+          </defs>
           {/* gridlines + y ticks */}
           {ticks.map((t) => (
             <g key={t}>
@@ -149,18 +162,17 @@ export function ColumnChart({
                 {d.background !== undefined && d.background > d.value && (
                   <path
                     d={columnPath(cx - barW / 2, y(d.background), barW, (d.background / top) * plotH)}
-                    fill="var(--chart-series)"
-                    fillOpacity={0.18}
-                    stroke="var(--chart-series)"
+                    fill={`url(#${gradientId}-paid)`}
+                    stroke="var(--chart-paid)"
                     strokeWidth={1}
-                    strokeDasharray="3 2"
                   />
                 )}
                 {d.value > 0 && (
                   <path
                     d={columnPath(cx - barW / 2, y(d.value), barW, h)}
-                    fill="var(--chart-series)"
+                    fill={`url(#${gradientId}-series)`}
                     opacity={active === i ? 0.8 : 1}
+                    className="transition-opacity duration-150"
                   />
                 )}
                 {/* Direct label on the latest column only, above the taller of its two
@@ -204,7 +216,7 @@ export function ColumnChart({
                   role="img"
                   aria-label={`${d.longLabel}: ${describe(d)}${d.detail ? `, ${d.detail}` : ''}`}
                   aria-describedby={hintId}
-                  className="cursor-default outline-none focus-visible:stroke-ring"
+                  className="cursor-default outline-none focus-visible:stroke-ring focus-visible:stroke-2"
                   onPointerEnter={() => setActive(i)}
                   onPointerLeave={() => setActive(null)}
                   onFocus={() => {

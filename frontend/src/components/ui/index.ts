@@ -1,5 +1,7 @@
 export { Alert } from './alert';
-export { Badge } from './badge';
+export { Avatar, initials } from './avatar';
+export { Badge, type BadgeVariant } from './badge';
+export { CategoryIcon } from './category-icon';
 export { Button, buttonClassName } from './button';
 export { ButtonLink } from './button-link';
 export { Card } from './card';

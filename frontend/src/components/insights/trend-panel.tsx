@@ -82,8 +82,8 @@ export function TrendPanel({
               <li className="flex items-center gap-1.5">
                 <span
                   aria-hidden
-                  className="inline-block size-2.5 rounded-sm border border-dashed"
-                  style={{ borderColor: 'var(--chart-series)', background: 'color-mix(in srgb, var(--chart-series) 18%, transparent)' }}
+                  className="inline-block size-2.5 rounded-sm border"
+                  style={{ borderColor: 'var(--chart-paid)', background: 'color-mix(in srgb, var(--chart-paid) 35%, transparent)' }}
                 />
                 Total paid (incl. others’ shares)
               </li>

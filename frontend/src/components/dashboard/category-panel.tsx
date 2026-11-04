@@ -1,5 +1,6 @@
 import { BarList, type BarListItem } from '@/components/charts/bar-list';
-import { EmptyState, ErrorState, Panel, Skeleton } from '@/components/ui';
+import { CategoryIcon, EmptyState, ErrorState, Panel, Skeleton } from '@/components/ui';
+import { accentFor, accentVar } from '@/lib/category-color';
 import { formatMoney } from '@/lib/format';
 import { fromPaise, toPaise } from '@/lib/split';
 import type { CategoryTotalsResponse } from '@/types';
@@ -22,6 +23,8 @@ function toItems(data: CategoryTotalsResponse): BarListItem[] {
     // From the API: the share of your spending (not of total paid).
     percentage: c.percentage,
     detail: paidDetail(c.totalExpense, c.totalPaid),
+    color: accentVar(accentFor(c.id)),
+    icon: <CategoryIcon category={c} size="sm" />,
   }));
   const rest = spent.slice(MAX_ROWS);
   if (rest.length > 0) {
@@ -33,6 +36,8 @@ function toItems(data: CategoryTotalsResponse): BarListItem[] {
       percentage: rest.reduce((sum, c) => sum + c.percentage, 0),
       detail: paidDetail(restSpent, sumPaise(rest.map((c) => c.totalPaid))),
       muted: true,
+      // "Other" stays neutral grey.
+      icon: <span aria-hidden className="size-7 shrink-0 rounded-full bg-muted" />,
     });
   }
   return items;

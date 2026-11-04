@@ -1,12 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Badge, Button, EmptyState, ErrorState, Skeleton } from '@/components/ui';
+import { Button, CategoryIcon, EmptyState, ErrorState, Skeleton } from '@/components/ui';
+import { SettlementBadge, SplitMethodBadge } from '@/components/expenses/split-badges';
 import { ReceiptIcon } from '@/components/icons';
 import { useApi } from '@/hooks/use-api';
 import { contactsApi } from '@/lib/api';
 import { formatDate, formatMoney, formatTimestampDate } from '@/lib/format';
-import { SETTLEMENT_STATUS_LABELS, SPLIT_METHOD_LABELS } from '@/lib/split';
 import type { Contact, ContactExpense } from '@/types';
 
 type ContactDetailsProps = {
@@ -92,23 +92,26 @@ function ExpenseRow({ item }: { item: ContactExpense }) {
   const paid = item.status === 'PAID';
   const title = expense.description ?? expense.category.name;
   return (
-    <li className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-      <div className="min-w-0">
-        <p className="truncate text-sm text-foreground" title={title}>
+    <li className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+      <CategoryIcon category={expense.category} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground" title={title}>
           {title}
         </p>
         <p className="text-xs text-muted-foreground tabular-nums">
-          {formatDate(expense.expenseDate)} · {formatMoney(expense.amount)} total ·{' '}
-          {SPLIT_METHOD_LABELS[expense.splitMethod]}
-          {item.percentage !== null && ` (${item.percentage}%)`}
+          {formatDate(expense.expenseDate)} · {formatMoney(expense.amount)} total
+        </p>
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+          <SplitMethodBadge method={expense.splitMethod} />
+          {item.percentage !== null && `${item.percentage}%`}
         </p>
         {paid && item.settledAt && (
           <p className="text-xs text-muted-foreground">Paid {formatTimestampDate(item.settledAt)}</p>
         )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-sm font-medium text-foreground tabular-nums">{formatMoney(item.shareAmount)}</span>
-        <Badge variant={paid ? 'success' : 'warning'}>{SETTLEMENT_STATUS_LABELS[item.status]}</Badge>
+        <span className="text-sm font-semibold text-foreground tabular-nums">{formatMoney(item.shareAmount)}</span>
+        <SettlementBadge status={item.status} />
       </div>
     </li>
   );
@@ -116,7 +119,7 @@ function ExpenseRow({ item }: { item: ContactExpense }) {
 
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="min-w-0 rounded-lg border border-border px-3 py-2">
+    <div className="min-w-0 rounded-xl border border-border bg-surface-2 px-3 py-2.5">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={strong ? 'truncate text-sm font-semibold text-foreground tabular-nums' : 'truncate text-sm text-foreground tabular-nums'}>
         {value}
@@ -128,7 +131,7 @@ function Stat({ label, value, strong }: { label: string; value: string; strong?:
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="border-b border-border pb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+      <h3 className="border-b border-border pb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {title}
       </h3>
       {children}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Alert, Button, FormField, Input, PasswordInput } from '@/components/ui';
+import { IconField, LockIcon, MailIcon, UserIcon } from './auth-icons';
 import { ApiError, toFormErrors, type FieldErrors } from '@/lib/api';
 import { validateRegister, type RegisterFormValues } from '@/lib/validation';
 import { useAuth } from './auth-provider';
@@ -55,33 +56,39 @@ export function RegisterForm() {
       {formError && <Alert variant="error">{formError}</Alert>}
 
       <FormField label="Name" htmlFor="name" error={errors.name}>
-        <Input
-          id="name"
-          name="name"
-          autoComplete="name"
-          placeholder="e.g. Priya Sharma"
-          value={values.name}
-          onChange={handleChange}
-          invalid={!!errors.name}
-          disabled={submitting}
-          maxLength={100}
-          required
-        />
+        <IconField icon={<UserIcon />}>
+          <Input
+            id="name"
+            className="pl-10!"
+            name="name"
+            autoComplete="name"
+            placeholder="e.g. Priya Sharma"
+            value={values.name}
+            onChange={handleChange}
+            invalid={!!errors.name}
+            disabled={submitting}
+            maxLength={100}
+            required
+          />
+        </IconField>
       </FormField>
 
       <FormField label="Email" htmlFor="email" error={errors.email}>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={values.email}
-          onChange={handleChange}
-          invalid={!!errors.email}
-          disabled={submitting}
-          required
-        />
+        <IconField icon={<MailIcon />}>
+          <Input
+            id="email"
+            className="pl-10!"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={values.email}
+            onChange={handleChange}
+            invalid={!!errors.email}
+            disabled={submitting}
+            required
+          />
+        </IconField>
       </FormField>
 
       <FormField
@@ -90,31 +97,37 @@ export function RegisterForm() {
         error={errors.password}
         hint="At least 8 characters"
       >
-        <PasswordInput
-          id="password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="Create a password"
-          value={values.password}
-          onChange={handleChange}
-          invalid={!!errors.password}
-          disabled={submitting}
-          required
-        />
+        <IconField icon={<LockIcon />}>
+          <PasswordInput
+            id="password"
+            className="pl-10!"
+            name="password"
+            autoComplete="new-password"
+            placeholder="Create a password"
+            value={values.password}
+            onChange={handleChange}
+            invalid={!!errors.password}
+            disabled={submitting}
+            required
+          />
+        </IconField>
       </FormField>
 
       <FormField label="Confirm password" htmlFor="confirmPassword" error={errors.confirmPassword}>
-        <PasswordInput
-          id="confirmPassword"
-          name="confirmPassword"
-          autoComplete="new-password"
-          placeholder="Re-enter your password"
-          value={values.confirmPassword}
-          onChange={handleChange}
-          invalid={!!errors.confirmPassword}
-          disabled={submitting}
-          required
-        />
+        <IconField icon={<LockIcon />}>
+          <PasswordInput
+            id="confirmPassword"
+            className="pl-10!"
+            name="confirmPassword"
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+            value={values.confirmPassword}
+            onChange={handleChange}
+            invalid={!!errors.confirmPassword}
+            disabled={submitting}
+            required
+          />
+        </IconField>
       </FormField>
 
       <Button type="submit" loading={submitting} className="mt-2 w-full">

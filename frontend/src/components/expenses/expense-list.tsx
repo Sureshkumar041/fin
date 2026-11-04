@@ -1,8 +1,9 @@
 import { ChevronDownIcon } from '@/components/icons';
-import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Button, CategoryIcon, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { formatDate, formatMoney } from '@/lib/format';
 import { peopleCount } from '@/lib/split';
 import type { Expense, ExpenseSplit } from '@/types';
+import { SplitMethodBadge } from './split-badges';
 
 type ExpenseListProps = {
   expenses: Expense[];
@@ -37,9 +38,12 @@ export function ExpenseList({ expenses, onEdit, onDelete, onView }: ExpenseListP
                 {e.split && <SplitLine expense={e} split={e.split} onView={onView} />}
               </TableCell>
               <TableCell>
-                <Badge>{e.category.name}</Badge>
+                <span className="flex items-center gap-2 whitespace-nowrap">
+                  <CategoryIcon category={e.category} size="sm" />
+                  {e.category.name}
+                </span>
               </TableCell>
-              <TableCell className="text-right font-medium whitespace-nowrap tabular-nums">
+              <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums">
                 {e.split ? <SplitAmount expense={e} split={e.split} /> : formatMoney(e.amount)}
               </TableCell>
               <TableCell className="text-right whitespace-nowrap">
@@ -52,24 +56,25 @@ export function ExpenseList({ expenses, onEdit, onDelete, onView }: ExpenseListP
 
       <ul className="divide-y divide-border sm:hidden">
         {expenses.map((e) => (
-          <li key={e.id} className="py-3 first:pt-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-foreground">{e.description ?? e.category.name}</p>
+          <li key={e.id} className="py-3.5 first:pt-0">
+            <div className="flex items-start gap-3">
+              <CategoryIcon category={e.category} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{e.description ?? e.category.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {e.category.name} · {formatDate(e.expenseDate)}
                 </p>
                 {e.split && <SplitLine expense={e} split={e.split} onView={onView} />}
               </div>
               {e.split ? (
-                <div className="shrink-0 text-right text-sm font-medium text-foreground tabular-nums">
+                <div className="shrink-0 text-right text-sm font-semibold text-foreground tabular-nums">
                   <SplitAmount expense={e} split={e.split} />
                 </div>
               ) : (
-                <p className="shrink-0 text-sm font-medium text-foreground tabular-nums">{formatMoney(e.amount)}</p>
+                <p className="shrink-0 text-sm font-semibold text-foreground tabular-nums">{formatMoney(e.amount)}</p>
               )}
             </div>
-            <div className="mt-1 -ml-3 flex">
+            <div className="mt-1 ml-9 flex">
               <RowActions expense={e} onEdit={onEdit} onDelete={onDelete} />
             </div>
           </li>
@@ -101,20 +106,23 @@ function SplitAmount({ expense, split }: { expense: Expense; split: ExpenseSplit
  * The full owed/settled breakdown and every participant are in the details.
  */
 function SplitLine({ expense, split, onView }: { expense: Expense; split: ExpenseSplit; onView: (e: Expense) => void }) {
-  const status = split.owedToYou > 0 ? `${formatMoney(split.owedToYou)} owed` : 'All settled';
+  const owed = split.owedToYou > 0;
   return (
-    <span className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+    <span className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
       <button
         type="button"
         onClick={() => onView(expense)}
         aria-label={`Split details of ${expense.description ?? expense.category.name}`}
         title="Show split details"
-        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary-soft px-2 py-0.5 font-medium whitespace-nowrap text-primary transition-colors hover:bg-primary/20"
+        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary-soft px-2.5 py-0.5 font-medium whitespace-nowrap text-primary transition-colors duration-150 hover:bg-primary/20"
       >
         Split · {peopleCount(split)}
         <ChevronDownIcon className="size-3 -rotate-90" />
       </button>
-      <span className="truncate">{status}</span>
+      <SplitMethodBadge method={split.method} />
+      <span className={owed ? 'truncate font-medium text-warning' : 'truncate font-medium text-success'}>
+        {owed ? `${formatMoney(split.owedToYou)} owed` : 'All settled'}
+      </span>
     </span>
   );
 }
